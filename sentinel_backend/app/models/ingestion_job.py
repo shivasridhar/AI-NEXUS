@@ -14,6 +14,8 @@ class IngestionJob(Base):
     events_processed = Column(BigInteger, default=0)
     started_at = Column(DateTime(timezone=True), server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    error_message = Column(String(1024), nullable=True)
+    risk_findings_generated = Column(BigInteger, default=0)
     
     __table_args__ = (
         CheckConstraint(status.in_(['pending', 'running', 'completed', 'failed']), name='status_check'),

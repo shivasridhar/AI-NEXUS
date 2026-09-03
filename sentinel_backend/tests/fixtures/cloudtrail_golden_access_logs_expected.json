@@ -1,0 +1,91 @@
+[
+  {
+    "event_id": "8e3c6f2e-bf7d-419e-976c-3e3e3example",
+    "event_time": "2023-10-14T17:34:34+00:00",
+    "event_name": "ConsoleLogin",
+    "event_source": "signin.amazonaws.com",
+    "aws_region": "us-east-1",
+    "source_ip": "192.0.2.1",
+    "identity_arn": "arn:aws:iam::123456789012:user/Alice",
+    "resource_arn": null,
+    "account_id": "123456789012",
+    "raw_event_json": {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAJ45Q7YFFAREXAMPLE",
+        "arn": "arn:aws:iam::123456789012:user/Alice",
+        "accountId": "123456789012",
+        "invokedBy": null
+      },
+      "eventTime": "2023-10-14T17:34:34Z",
+      "eventSource": "signin.amazonaws.com",
+      "eventName": "ConsoleLogin",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "192.0.2.1",
+      "userAgent": "Mozilla/5.0",
+      "errorCode": null,
+      "errorMessage": null,
+      "requestParameters": null,
+      "responseElements": {
+        "ConsoleLogin": "Success"
+      },
+      "eventID": "8e3c6f2e-bf7d-419e-976c-3e3e3example",
+      "eventType": "AwsConsoleSignIn",
+      "readOnly": false,
+      "resources": [],
+      "recipientAccountId": "123456789012"
+    }
+  },
+  {
+    "event_id": "9f4d7g3f-cf8e-520f-087d-4f4f4example",
+    "event_time": "2023-10-14T17:35:00+00:00",
+    "event_name": "PutObject",
+    "event_source": "s3.amazonaws.com",
+    "aws_region": "us-east-1",
+    "source_ip": "192.0.2.2",
+    "identity_arn": "arn:aws:sts::123456789012:assumed-role/TestRole/test-session",
+    "resource_arn": "arn:aws:s3:::my-secret-bucket/test-file.txt",
+    "account_id": "123456789012",
+    "raw_event_json": {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAIOSFODNN7EXAMPLE:test-session",
+        "arn": "arn:aws:sts::123456789012:assumed-role/TestRole/test-session",
+        "accountId": "123456789012",
+        "invokedBy": null
+      },
+      "eventTime": "2023-10-14T17:35:00Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "PutObject",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "192.0.2.2",
+      "userAgent": "aws-cli/2.0.0 Python/3.8.3",
+      "errorCode": null,
+      "errorMessage": null,
+      "requestParameters": {
+        "bucketName": "my-secret-bucket",
+        "Host": "my-secret-bucket.s3.us-east-1.amazonaws.com",
+        "key": "test-file.txt"
+      },
+      "responseElements": null,
+      "eventID": "9f4d7g3f-cf8e-520f-087d-4f4f4example",
+      "eventType": "AwsApiCall",
+      "readOnly": false,
+      "resources": [
+        {
+          "ARN": "arn:aws:s3:::my-secret-bucket/test-file.txt",
+          "accountId": null,
+          "type": "AWS::S3::Object"
+        },
+        {
+          "ARN": "arn:aws:s3:::my-secret-bucket",
+          "accountId": null,
+          "type": "AWS::S3::Bucket"
+        }
+      ],
+      "recipientAccountId": "123456789012"
+    }
+  }
+]

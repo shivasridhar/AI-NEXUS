@@ -1,0 +1,1080 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flowzint Handbook</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 40px 60px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        
+        h1:first-of-type {
+            margin-top: 0;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            color: #2980b9;
+        }
+
+        h3 {
+            font-size: 1.4em;
+            color: #34495e;
+        }
+
+        a {
+            color: #3498db;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        p {
+            margin-bottom: 1.2em;
+            color: #4f5a65;
+        }
+
+        ul, ol {
+            margin-bottom: 1.5em;
+            padding-left: 20px;
+            color: #4f5a65;
+        }
+
+        li {
+            margin-bottom: 0.5em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2em;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        blockquote {
+            border-left: 5px solid #3498db;
+            background-color: #ebf5fb;
+            margin: 1.5em 0;
+            padding: 15px 20px;
+            border-radius: 0 4px 4px 0;
+            color: #2c3e50;
+            font-style: italic;
+        }
+        
+        code {
+            background-color: #f1f5f9;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            color: #e74c3c;
+        }
+        
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 1.5em;
+        }
+        
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            color: inherit;
+        }
+        
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        
+        .alert-info {
+            color: #31708f;
+            background-color: #d9edf7;
+            border-color: #bce8f1;
+        }
+        
+        .alert-warning {
+            color: #8a6d3b;
+            background-color: #fcf8e3;
+            border-color: #faebcc;
+        }
+        
+        .alert-danger {
+            color: #a94442;
+            background-color: #f2dede;
+            border-color: #ebccd1;
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: #eee;
+            margin: 40px 0;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            color: #7f8c8d;
+        }
+        
+        @media print {
+            body {
+                background: none;
+            }
+            .container {
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p><strong>Flowzint Handbook</strong></p>
+        </div>
+        <p>Based on your latest architecture, research documents, and implementation direction, here&#39;s the complete understanding of <strong>SentinelAI (AI-NEXUS)</strong>.</p>
+<hr>
+<h1>SentinelAI (AI-NEXUS)</h1>
+<h2>Enterprise AI-Powered Cyber Risk Intelligence Platform</h2>
+<h3>One-Line Definition</h3>
+<p>SentinelAI is an <strong>AI-powered Cyber Risk Intelligence Platform</strong> that collects security events from multiple enterprise security tools, correlates them into incidents, evaluates business-aware cyber risk using deterministic analytics, and finally generates explainable AI recommendations backed by evidence.</p>
+<p>It is <strong>not another SIEM</strong>.</p>
+<p>It is an <strong>Intelligence Layer</strong> that sits above existing security tools.</p>
+<hr>
+<h1>The Problem Statement</h1>
+<h2>Current Enterprise Problem</h2>
+<p>Large organizations already have many cybersecurity products:</p>
+<ul>
+<li>SIEM (Wazuh, Splunk, QRadar)</li>
+<li>EDR (CrowdStrike, Microsoft Defender)</li>
+<li>IAM (Okta, Azure AD)</li>
+<li>Vulnerability Scanners (OpenVAS, Nessus)</li>
+<li>Firewalls</li>
+<li>Cloud Security (AWS Security Hub, Azure Defender)</li>
+<li>Compliance Platforms</li>
+</ul>
+<p>Each tool performs its own job well.</p>
+<p>The problem is <strong>they operate independently</strong>.</p>
+<hr>
+<h2>Example</h2>
+<p>An attacker performs an SSH brute-force attack.</p>
+<p>What happens?</p>
+<h3>Wazuh</h3>
+<pre><code>SSH Brute Force Detected
+</code></pre>
+<hr>
+<h3>Suricata</h3>
+<pre><code>Port Scan Detected
+</code></pre>
+<hr>
+<h3>OpenVAS</h3>
+<pre><code>Apache has CVE-2024-XXXX
+</code></pre>
+<hr>
+<h3>IAM</h3>
+<pre><code>John logged in successfully
+</code></pre>
+<hr>
+<h3>Firewall</h3>
+<pre><code>Connection Accepted
+</code></pre>
+<hr>
+<p>Every tool produces</p>
+<p>its own</p>
+<p>alert.</p>
+<p>Now imagine</p>
+<p>5000 alerts/day.</p>
+<p>The SOC analyst must manually ask</p>
+<pre><code>Are these alerts related?
+
+Is this one attack?
+
+Is this dangerous?
+
+Which system is affected?
+
+What should I fix first?
+</code></pre>
+<p>This takes hours.</p>
+<hr>
+<h2>Existing Problems</h2>
+<h3>1. Alert Fatigue</h3>
+<p>SOC teams receive thousands of alerts every day.</p>
+<p>Most are</p>
+<ul>
+<li>duplicates</li>
+<li>isolated</li>
+<li>low priority</li>
+</ul>
+<p>Analysts spend more time filtering alerts than investigating attacks.</p>
+<hr>
+<h3>2. No Context</h3>
+<p>Current tools tell you</p>
+<pre><code>What happened
+</code></pre>
+<p>They don&#39;t tell you</p>
+<pre><code>Why it matters.
+</code></pre>
+<p>Example</p>
+<pre><code>SSH Login Success
+</code></pre>
+<p>Was it</p>
+<p>normal?</p>
+<p>after brute force?</p>
+<p>administrator?</p>
+<p>critical server?</p>
+<p>Nobody knows.</p>
+<hr>
+<h3>3. No Relationship Between Events</h3>
+<p>Today&#39;s tools think</p>
+<pre><code>Port Scan
+
+SSH Login
+
+Privilege Escalation
+
+OpenVAS CVE
+</code></pre>
+<p>are</p>
+<p>four separate alerts.</p>
+<p>Reality</p>
+<p>They&#39;re one attack.</p>
+<hr>
+<h3>4. CVSS is Not Enough</h3>
+<p>OpenVAS says</p>
+<pre><code>CVSS 9.8
+</code></pre>
+<p>But</p>
+<pre><code>Server is offline
+
+↓
+
+No business impact
+</code></pre>
+<p>Risk is actually low.</p>
+<p>Another vulnerability</p>
+<pre><code>CVSS 6.5
+
+↓
+
+Payroll Database
+
+↓
+
+Finance Server
+
+↓
+
+Internet Facing
+</code></pre>
+<p>Risk is much higher.</p>
+<p>Traditional tools cannot understand business context.</p>
+<hr>
+<h3>5. AI Hallucination</h3>
+<p>Many AI security tools simply feed logs into an LLM.</p>
+<p>LLMs hallucinate.</p>
+<p>No evidence.</p>
+<p>No traceability.</p>
+<p>Not suitable for enterprise security.</p>
+<hr>
+<h1>SentinelAI Solution</h1>
+<p>Instead of replacing security tools,</p>
+<p>SentinelAI connects all of them.</p>
+<pre><code>Wazuh
+
+↓
+
+Suricata
+
+↓
+
+OpenVAS
+
+↓
+
+AWS
+
+↓
+
+IAM
+
+↓
+
+SentinelAI
+</code></pre>
+<p>SentinelAI</p>
+<ul>
+<li>correlates events</li>
+<li>understands relationships</li>
+<li>calculates business-aware risk</li>
+<li>uses AI only after deterministic analysis</li>
+<li>provides explainable recommendations</li>
+</ul>
+<hr>
+<h1>Core Innovation</h1>
+<p>The biggest innovation is</p>
+<pre><code>Deterministic Intelligence
+
++
+
+Explainable AI
+</code></pre>
+<p>instead of</p>
+<pre><code>Raw Logs
+
+↓
+
+LLM
+
+↓
+
+Answer
+</code></pre>
+<p>SentinelAI does</p>
+<pre><code>Raw Events
+
+↓
+
+Normalization
+
+↓
+
+Correlation
+
+↓
+
+Knowledge Graph
+
+↓
+
+Risk Engine
+
+↓
+
+AI
+
+↓
+
+Verification
+
+↓
+
+Dashboard
+</code></pre>
+<p>AI never decides risk.</p>
+<p>AI only explains verified facts.</p>
+<p>This is the core research principle of SentinelAI. </p>
+<hr>
+<h1>Complete Pipeline</h1>
+<hr>
+<h1>Stage 1</h1>
+<h2>Enterprise Data Ingestion Engine</h2>
+<p>Purpose</p>
+<p>Collect security information from different tools.</p>
+<p>Examples</p>
+<ul>
+<li>Wazuh</li>
+<li>Suricata</li>
+<li>OpenVAS</li>
+<li>AWS</li>
+<li>IAM</li>
+</ul>
+<p>Responsibilities</p>
+<ul>
+<li>Collect events</li>
+<li>Authenticate</li>
+<li>Validate</li>
+<li>Remove duplicates</li>
+<li>Publish events</li>
+</ul>
+<p>Output</p>
+<pre><code>Security Events
+</code></pre>
+<hr>
+<h1>Stage 2</h1>
+<h2>Data Normalization Engine</h2>
+<p>Every tool has different formats.</p>
+<p>Example</p>
+<p>Wazuh</p>
+<pre><code>severity:12
+</code></pre>
+<p>OpenVAS</p>
+<pre><code>risk=critical
+</code></pre>
+<p>AWS</p>
+<pre><code>HIGH
+</code></pre>
+<p>Normalization converts everything into</p>
+<p>one enterprise format.</p>
+<p>Output</p>
+<pre><code>Canonical Security Entity
+</code></pre>
+<hr>
+<h1>Stage 3</h1>
+<h2>Threat Correlation Engine + Knowledge Graph</h2>
+<p>Instead of</p>
+<pre><code>Alert
+
+Alert
+
+Alert
+</code></pre>
+<p>build</p>
+<pre><code>Incident
+
+├ Port Scan
+
+├ Hydra
+
+├ Login
+
+├ Privilege Escalation
+
+└ Vulnerability
+</code></pre>
+<p>Also</p>
+<p>create</p>
+<p>graph</p>
+<pre><code>User
+
+↓
+
+Machine
+
+↓
+
+Application
+
+↓
+
+Database
+
+↓
+
+Vulnerability
+</code></pre>
+<p>Everything becomes connected.</p>
+<p>Output</p>
+<pre><code>Incident Graph
+</code></pre>
+<hr>
+<h1>Stage 4</h1>
+<h2>Risk Intelligence Engine</h2>
+<p>The brain of SentinelAI.</p>
+<p>Uses</p>
+<ul>
+<li>Attack Path</li>
+<li>Blast Radius</li>
+<li>Asset Criticality</li>
+<li>Compliance</li>
+<li>Business Impact</li>
+<li>Graph Analytics</li>
+<li>MITRE Mapping</li>
+</ul>
+<p>Produces</p>
+<pre><code>Risk Score
+
+Priority
+
+Evidence
+
+Confidence
+
+Business Impact
+</code></pre>
+<p>This stage <strong>does not use AI</strong>. It performs deterministic graph analysis and generates structured risk evidence for the next stage. </p>
+<hr>
+<h1>Stage 5</h1>
+<h2>AI Decision Intelligence Engine</h2>
+<p>Now AI starts.</p>
+<p>Input</p>
+<pre><code>Verified Risk Evidence
+</code></pre>
+<p>AI generates</p>
+<ul>
+<li>Executive Summary</li>
+<li>Technical Summary</li>
+<li>Root Cause</li>
+<li>Remediation</li>
+<li>Business Explanation</li>
+<li>Analyst Guidance</li>
+</ul>
+<p>AI never receives raw logs.</p>
+<p>Only verified evidence.</p>
+<hr>
+<h1>Stage 6</h1>
+<h2>Explainability Engine</h2>
+<p>This stage verifies AI.</p>
+<p>Checks</p>
+<pre><code>Does this recommendation exist in graph?
+
+Is evidence attached?
+
+Does risk score match?
+
+Are claims supported?
+</code></pre>
+<p>Then</p>
+<p>attaches</p>
+<ul>
+<li>citations</li>
+<li>confidence</li>
+<li>graph references</li>
+<li>supporting evidence</li>
+</ul>
+<p>Output</p>
+<pre><code>Verified Response
+</code></pre>
+<hr>
+<h1>Stage 7</h1>
+<h2>API Gateway</h2>
+<p>Provides secure access.</p>
+<p>Responsibilities</p>
+<ul>
+<li>JWT</li>
+<li>RBAC</li>
+<li>Rate Limiting</li>
+<li>Validation</li>
+<li>Routing</li>
+<li>Logging</li>
+<li>API Versioning</li>
+</ul>
+<p>Everything enters through Stage 7 before reaching users. </p>
+<hr>
+<h1>Stage 8</h1>
+<h2>Incident Dashboard &amp; AI Assistant</h2>
+<p>Different users receive different views.</p>
+<h3>Executive</h3>
+<ul>
+<li>Enterprise Risk</li>
+<li>KPIs</li>
+<li>Compliance</li>
+<li>Trends</li>
+</ul>
+<h3>SOC Analyst</h3>
+<ul>
+<li>Incident Timeline</li>
+<li>MITRE Techniques</li>
+<li>Attack Path</li>
+<li>Vulnerabilities</li>
+<li>Risk Score</li>
+</ul>
+<h3>AI Assistant</h3>
+<p>Questions</p>
+<pre><code>Why is Payroll Server critical?
+
+↓
+
+Show attack path
+
+↓
+
+Recommend remediation
+
+↓
+
+Explain business impact
+</code></pre>
+<p>The dashboard consumes validated responses from the API Gateway and presents role-specific experiences such as executive dashboards, SOC investigations, graph visualization, and an AI assistant.</p>
+<hr>
+<h1>Runtime Example</h1>
+<p>Suppose an attacker launches an attack.</p>
+<pre><code>Hydra SSH Brute Force
+
+↓
+
+Suricata detects scan
+
+↓
+
+Wazuh detects brute force
+
+↓
+
+SSH Login Success
+
+↓
+
+Privilege Escalation
+
+↓
+
+OpenVAS finds Apache CVE
+
+↓
+
+Stage 1 collects events
+
+↓
+
+Stage 2 normalizes data
+
+↓
+
+Stage 3 correlates everything into one incident
+
+↓
+
+Stage 4 calculates risk
+
+↓
+
+Critical
+
+Risk Score 9.7
+
+MITRE Techniques
+
+Business Impact
+
+↓
+
+Stage 5 generates executive + analyst explanation
+
+↓
+
+Stage 6 validates every claim and attaches evidence
+
+↓
+
+Stage 7 exposes secure APIs
+
+↓
+
+Stage 8 displays the incident dashboard
+</code></pre>
+<p>Instead of showing five unrelated alerts, SentinelAI presents <strong>one verified incident with its timeline, risk score, evidence, MITRE mapping, AI explanation, and recommended remediation</strong>.</p>
+<hr>
+<h1>Why SentinelAI Stands Out</h1>
+<p>Most security products answer:</p>
+<blockquote>
+<p><strong>&quot;What happened?&quot;</strong></p>
+</blockquote>
+<p>SentinelAI answers:</p>
+<ul>
+<li><strong>What happened?</strong></li>
+<li><strong>Why did it happen?</strong></li>
+<li><strong>Which business assets are affected?</strong></li>
+<li><strong>How severe is it in organizational context?</strong></li>
+<li><strong>What evidence supports this conclusion?</strong></li>
+<li><strong>What should the SOC analyst or executive do next?</strong></li>
+</ul>
+<p>That shift—from isolated alerts to <strong>explainable cyber risk intelligence</strong>—is the fundamental vision and differentiator of your project.</p>
+<p>Based on your <strong>latest research</strong>, <strong>current implementation</strong>, and the refined architecture (Threat Correlation Engine, Risk Intelligence Engine, AI Decision Engine, Explainability Engine, API Gateway, Dashboard), the best distribution is <strong>module ownership</strong>, not stage ownership. This minimizes merge conflicts while preserving the 8-stage architecture.</p>
+<hr>
+<h1>SentinelAI Team Distribution (4 Members)</h1>
+<h2>👤 Member 1 — Security Data Acquisition &amp; Simulation</h2>
+<p><strong>Owns:</strong> Stage 1 (Enterprise Data Ingestion Engine)</p>
+<h3>Responsibilities</h3>
+<ul>
+<li>Build the complete attack simulation environment.</li>
+<li>Integrate all security data sources.</li>
+<li>Deliver validated security events to downstream modules.</li>
+</ul>
+<h3>Modules</h3>
+<pre><code>/simulation/
+/connectors/
+/ingestion/
+/config/
+/docker/
+/security_sources/
+</code></pre>
+<h3>Tasks</h3>
+<h3>Attack Simulation</h3>
+<ul>
+<li>Configure Attacker VM</li>
+<li>Configure Target VM</li>
+<li>Hydra attack simulation</li>
+<li>Nmap scan simulation</li>
+<li>Successful SSH login simulation</li>
+<li>Privilege escalation simulation</li>
+<li>Vulnerability simulation</li>
+</ul>
+<h3>Security Tools</h3>
+<ul>
+<li>Wazuh</li>
+<li>Suricata</li>
+<li>OpenVAS</li>
+<li>Optional AWS Connector</li>
+<li>Mock AWS findings</li>
+<li>XML parser</li>
+</ul>
+<h3>Ingestion Engine</h3>
+<ul>
+<li>Connector Manager</li>
+<li>Scheduler</li>
+<li>Authentication Manager</li>
+<li>Payload Validator</li>
+<li>Duplicate Detection</li>
+<li>Metadata Enrichment</li>
+<li>Event Publisher</li>
+</ul>
+<h3>Output</h3>
+<p>Produces only</p>
+<pre><code>Security Events (JSON)
+</code></pre>
+<p>No normalization.</p>
+<p>No AI.</p>
+<p>No dashboard.</p>
+<hr>
+<h2>👤 Member 2 — Intelligence Core</h2>
+<p><strong>Owns</strong></p>
+<p>Stage 2</p>
+<p>Stage 3</p>
+<p>Stage 4</p>
+<p>This is the backend intelligence engineer.</p>
+<h3>Modules</h3>
+<pre><code>/normalization/
+/graph/
+/risk/
+/models/
+/neo4j/
+/analytics/
+</code></pre>
+<h3>Stage 2</h3>
+<p>Data Normalization Engine</p>
+<p>Implement</p>
+<ul>
+<li>Vendor Mapping</li>
+<li>Schema Mapping</li>
+<li>Canonical Entity Model</li>
+<li>Timestamp Standardization</li>
+<li>Severity Mapping</li>
+<li>Entity Resolution</li>
+<li>Data Validation</li>
+<li>Metadata Enrichment</li>
+</ul>
+<p>Output</p>
+<pre><code>Canonical Entities
+</code></pre>
+<hr>
+<h3>Stage 3</h3>
+<p>Threat Correlation Engine + Knowledge Graph Builder</p>
+<p>Implement</p>
+<ul>
+<li>Incident Correlation</li>
+<li>Timeline Correlation</li>
+<li>MITRE Mapping</li>
+<li>Neo4j Nodes</li>
+<li>Neo4j Relationships</li>
+<li>Graph Builder</li>
+<li>Graph Updates</li>
+</ul>
+<p>Build</p>
+<pre><code>Incident
+
+├ Scan
+
+├ Hydra
+
+├ Login
+
+├ Priv Esc
+
+└ Vulnerability
+</code></pre>
+<p>instead of individual alerts.</p>
+<hr>
+<h3>Stage 4</h3>
+<p>Risk Intelligence Engine</p>
+<p>Implement</p>
+<ul>
+<li>Attack Path Discovery</li>
+<li>Blast Radius</li>
+<li>Business Impact</li>
+<li>Asset Criticality</li>
+<li>Compliance Mapping</li>
+<li>Contextual Risk Score</li>
+<li>Risk Priority</li>
+<li>Confidence</li>
+<li>Risk Evidence Payload</li>
+</ul>
+<p>Output</p>
+<pre><code>RiskEvidence
+</code></pre>
+<p>No AI generation.</p>
+<hr>
+<h2>👤 Member 3 — AI Intelligence Layer</h2>
+<p><strong>Owns</strong></p>
+<p>Stage 5</p>
+<p>Stage 6</p>
+<p>This member owns every LLM-related component.</p>
+<h3>Modules</h3>
+<pre><code>/ai/
+/langgraph/
+/prompts/
+/explainability/
+/verification/
+/rag/
+</code></pre>
+<h3>Stage 5</h3>
+<p>AI Decision Intelligence</p>
+<p>Implement</p>
+<ul>
+<li>LangGraph workflow</li>
+<li>Prompt Builder</li>
+<li>Evidence Retrieval</li>
+<li>Recommendation Generator</li>
+<li>Executive Summary</li>
+<li>Technical Summary</li>
+<li>Remediation Generator</li>
+<li>Incident Explanation</li>
+<li>Business Explanation</li>
+</ul>
+<p>Input</p>
+<pre><code>RiskEvidence
+</code></pre>
+<p>Output</p>
+<pre><code>AIResponse
+</code></pre>
+<hr>
+<h3>Stage 6</h3>
+<p>Explainability Engine</p>
+<p>Implement</p>
+<ul>
+<li>Evidence Validator</li>
+<li>Graph Verification</li>
+<li>Rule-based Confidence Score</li>
+<li>Citation Generator</li>
+<li>Unsupported Claim Detection</li>
+<li>Evidence Attachment</li>
+<li>Final Verified Response</li>
+</ul>
+<p>Output</p>
+<pre><code>VerifiedResponse
+</code></pre>
+<p>No frontend.</p>
+<hr>
+<h2>👤 Member 4 — Platform Experience</h2>
+<p><strong>Owns</strong></p>
+<p>Stage 7</p>
+<p>Stage 8</p>
+<h3>Modules</h3>
+<pre><code>/gateway/
+/frontend/
+/dashboard/
+/chat/
+/api/
+/auth/
+</code></pre>
+<hr>
+<h3>Stage 7</h3>
+<p>API Gateway</p>
+<p>Implement</p>
+<ul>
+<li>FastAPI</li>
+<li>JWT</li>
+<li>RBAC</li>
+<li>Rate Limiting</li>
+<li>Request Validation</li>
+<li>Response Standardization</li>
+<li>API Versioning</li>
+<li>Audit Logging</li>
+</ul>
+<p>Expose APIs</p>
+<pre><code>/incident
+
+/risk
+
+/dashboard
+
+/chat
+
+/graph
+
+/reports
+</code></pre>
+<hr>
+<h3>Stage 8</h3>
+<p>Incident Dashboard</p>
+<p>Implement</p>
+<h3>Executive Dashboard</h3>
+<ul>
+<li>Enterprise Risk</li>
+<li>KPI Cards</li>
+<li>Compliance</li>
+<li>Trends</li>
+</ul>
+<h3>SOC Dashboard</h3>
+<ul>
+<li>Incident Timeline</li>
+<li>MITRE Flow</li>
+<li>Attack Path</li>
+<li>Vulnerability Panel</li>
+<li>Risk Score</li>
+</ul>
+<h3>Knowledge Graph</h3>
+<ul>
+<li>React Flow</li>
+<li>Cytoscape</li>
+</ul>
+<h3>AI Chat</h3>
+<ul>
+<li>Chat Interface</li>
+<li>Streaming Responses</li>
+</ul>
+<h3>Reports</h3>
+<ul>
+<li>PDF</li>
+<li>CSV</li>
+</ul>
+<h3>Notifications</h3>
+<ul>
+<li>Incident Alerts</li>
+</ul>
+<hr>
+<h1>Integration Order</h1>
+<pre><code>Member 1
+
+↓
+
+Security Events
+
+↓
+
+Member 2
+
+↓
+
+Canonical Entities
+
+↓
+
+Incident Graph
+
+↓
+
+Risk Evidence
+
+↓
+
+Member 3
+
+↓
+
+AI Response
+
+↓
+
+Verified Response
+
+↓
+
+Member 4
+
+↓
+
+API
+
+↓
+
+Dashboard
+</code></pre>
+<hr>
+<h1>Merge Conflict Prevention</h1>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Owns</th>
+<th>Never Touches</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Member 1</strong></td>
+<td><code>/simulation</code>, <code>/connectors</code>, <code>/ingestion</code>, <code>/config</code></td>
+<td>Graph, AI, Frontend</td>
+</tr>
+<tr>
+<td><strong>Member 2</strong></td>
+<td><code>/normalization</code>, <code>/graph</code>, <code>/risk</code>, <code>/neo4j</code></td>
+<td>Connectors, AI, Frontend</td>
+</tr>
+<tr>
+<td><strong>Member 3</strong></td>
+<td><code>/ai</code>, <code>/langgraph</code>, <code>/prompts</code>, <code>/explainability</code></td>
+<td>Graph internals, Frontend</td>
+</tr>
+<tr>
+<td><strong>Member 4</strong></td>
+<td><code>/gateway</code>, <code>/frontend</code>, <code>/dashboard</code>, <code>/chat</code></td>
+<td>Connectors, Graph, AI internals</td>
+</tr>
+</tbody></table>
+<h2>Shared Interface Contracts (decide once, then freeze)</h2>
+<p>Only these artifacts are shared across members:</p>
+<ol>
+<li><strong>SecurityEvent</strong> (Member 1 → Member 2)</li>
+<li><strong>CanonicalEntity</strong> (Stage 2 → Stage 3)</li>
+<li><strong>RiskEvidence</strong> (Member 2 → Member 3)</li>
+<li><strong>VerifiedResponse</strong> (Member 3 → Member 4)</li>
+</ol>
+<p>By agreeing on these JSON schemas at the start, each member can develop independently with minimal merge conflicts. This distribution also aligns with your updated research: Member 1 focuses on data acquisition and simulation, Member 2 builds the deterministic intelligence core (normalization, correlation, graph, and risk), Member 3 implements the AI and explainability pipeline, and Member 4 delivers the secure APIs and user-facing experience.</p>
+
+    </div>
+</body>
+</html>

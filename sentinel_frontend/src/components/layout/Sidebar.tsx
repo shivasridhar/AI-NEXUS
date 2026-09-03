@@ -12,10 +12,10 @@ import {
   FileBarChart, 
   Settings, 
   ShieldCheck,
-  ClipboardCheck,
   Building2,
   ScrollText,
-  Cloud
+  Cloud,
+  Activity
 } from "lucide-react";
 import { useOrganization } from "@/lib/queries";
 
@@ -25,6 +25,7 @@ const navItems = [
   { name: "Investigations", href: "/attack-graph", icon: GitBranch },
   { name: "Risk Center", href: "/risk-findings", icon: ShieldAlert },
   { name: "Integrations", href: "/integrations", icon: Cloud },
+  { name: "Ingestion Monitor", href: "/ingestion", icon: Activity },
   { name: "Data Sources", href: "/cloudtrail", icon: Terminal },
   { name: "SentinelAI Copilot", href: "/ai-investigation", icon: BrainCircuit },
 

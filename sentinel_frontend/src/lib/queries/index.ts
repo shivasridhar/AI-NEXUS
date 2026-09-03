@@ -193,3 +193,71 @@ export const useGenerateReport = () => {
     }
   });
 };
+
+// ── MITRE ATT&CK & Compliance ──────────────────────────────────────────
+
+export const useMitreTechniques = () => {
+  return useQuery({
+    queryKey: ['mitreTechniques'],
+    queryFn: async (): Promise<{techniques: any[], total: number}> => {
+      return await api.get('/mitre/techniques');
+    }
+  });
+};
+
+export const useComplianceScores = () => {
+  return useQuery({
+    queryKey: ['complianceScores'],
+    queryFn: async (): Promise<any> => {
+      return await api.get('/mitre/compliance');
+    }
+  });
+};
+
+export const useExportReport = () => {
+  return useMutation({
+    mutationFn: async (req: { identity_id?: string; finding_id?: string; filename: string }): Promise<void> => {
+      const { filename, ...body } = req;
+      return await api.postDownload('/reports/export', body, filename);
+    }
+  });
+};
+
+// ── AI Conversations ──────────────────────────────────────────────────
+
+export const useAiConversations = (identityId?: string) => {
+  return useQuery({
+    queryKey: ['aiConversations', identityId],
+    queryFn: async (): Promise<any[]> => {
+      let url = '/ai-conversations';
+      if (identityId) url += `?identity_id=${identityId}`;
+      return await api.get(url);
+    }
+  });
+};
+
+export const useCreateAiConversation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (req: { title?: string; identity_id?: string; message?: any }): Promise<any> => {
+      return await api.post('/ai-conversations/', req);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['aiConversations'] });
+    }
+  });
+};
+
+export const useUpdateAiConversation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (req: { id: string; title?: string; message?: any }): Promise<any> => {
+      const { id, ...body } = req;
+      return await api.put(`/ai-conversations/${id}`, body);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['aiConversations'] });
+    }
+  });
+};
+

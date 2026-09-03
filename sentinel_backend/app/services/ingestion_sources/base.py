@@ -12,11 +12,9 @@ class IngestionSource(ABC):
         Fetches events from the source and returns them as a RawEventBatch
         (typically a dictionary matching the CloudTrail JSON structure).
         """
-        pass
 
     @abstractmethod
     def get_source_metadata(self) -> Dict[str, Any]:
         """
         Returns metadata about the ingestion source, such as the source type and identifier.
         """
-        pass

@@ -23,37 +23,31 @@ class GraphReasoner:
         }
         
         try:
-            # 1. Reachable Critical Assets
+            # 1. Reachable Critical Assets — standard Cypher, no APOC required.
+            # LIMIT 1 is not applicable here (we need COUNT); path length bound
+            # [*1..max_hops] prevents runaway traversals on large graphs.
             query_assets = f"""
-            CALL apoc.cypher.runTimeOut(
-                "MATCH (i:Identity {{id: $id, workspace_id: $wid}})-[*1..{self.max_hops}]->(a:Resource)
-                 WHERE a.is_critical = true
-                 RETURN count(DISTINCT a) as critical_count",
-                $params,
-                $timeout
-            ) YIELD value
-            RETURN value.critical_count as count
+            MATCH (i:Identity {{id: $id, workspace_id: $wid}})-[*1..{self.max_hops}]->(a:Resource)
+            WHERE a.is_critical = true
+            RETURN count(DISTINCT a) AS count
             """
-            res_assets = self.graph.run(query_assets, id=identity_id, wid=workspace_id, timeout=self.timeout_ms, params={"id": identity_id, "wid": workspace_id}).data()
+            res_assets = self.graph.run(query_assets, id=identity_id, wid=workspace_id).data()
             if res_assets:
                 metrics["reachable_critical_assets"] = res_assets[0].get("count", 0)
 
-            # 2. Cycle Detection (Simple heuristic: path that returns to same identity/role)
+            # 2. Cycle Detection — standard Cypher, no APOC required.
+            # LIMIT 1 short-circuits after finding the first cycle.
             query_cycles = f"""
-            CALL apoc.cypher.runTimeOut(
-                "MATCH p=(n)-[*1..{self.max_hops}]->(n)
-                 WHERE n.id = $id AND n.workspace_id = $wid
-                 RETURN count(p) > 0 as has_cycle",
-                $params,
-                $timeout
-            ) YIELD value
-            RETURN value.has_cycle as has_cycle
+            MATCH p=(n)-[*1..{self.max_hops}]->(n)
+            WHERE n.id = $id AND n.workspace_id = $wid
+            RETURN count(p) > 0 AS has_cycle
+            LIMIT 1
             """
-            res_cycles = self.graph.run(query_cycles, id=identity_id, wid=workspace_id, timeout=self.timeout_ms, params={"id": identity_id, "wid": workspace_id}).data()
+            res_cycles = self.graph.run(query_cycles, id=identity_id, wid=workspace_id).data()
             if res_cycles:
                 metrics["cycle_detected"] = res_cycles[0].get("has_cycle", False)
 
         except Exception as e:
-            logger.warning(f"Graph reasoning partial failure (timeout or error): {str(e)}")
+            logger.warning("Graph reasoning partial failure (timeout or error): %s", str(e))
 
         return metrics

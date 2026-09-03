@@ -35,4 +35,33 @@ def health_check(
         status["neo4j"] = f"error: {str(e)}"
         status["status"] = "error"
         
+    # Check Connectors (Integration Freshness)
+    try:
+        from app.models.integration import Integration
+        from datetime import datetime, timezone
+        
+        integrations = db.query(Integration).all()
+        connectors_status = {}
+        for integration in integrations:
+            connector_name = integration.provider
+            if integration.status == "error":
+                connectors_status[connector_name] = "error"
+                status["status"] = "degraded"
+            elif integration.last_sync_time:
+                # Check if it has been synced recently (e.g. within last 24h as a baseline for freshness)
+                time_diff = datetime.now(timezone.utc) - integration.last_sync_time
+                if time_diff.total_seconds() > 86400: # 24 hours
+                    connectors_status[connector_name] = "stale"
+                    if status["status"] == "ok":
+                        status["status"] = "degraded"
+                else:
+                    connectors_status[connector_name] = "ok"
+            else:
+                connectors_status[connector_name] = "pending"
+                
+        status["connectors"] = connectors_status
+    except Exception as e:
+        status["connectors"] = f"error: {str(e)}"
+        status["status"] = "error"
+        
     return status

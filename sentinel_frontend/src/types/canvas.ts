@@ -19,6 +19,7 @@ export interface AIInvestigationResponse {
   attack_path_analysis?: string;
   findings?: string[];
   recommendations?: string[];
+  confidence_score?: number;
   analyzed_at?: string;
 }
 

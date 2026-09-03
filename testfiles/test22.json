@@ -1,0 +1,47 @@
+{
+    "eventVersion": "1.11",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "503511483994",
+        "arn": "arn:aws:iam::503511483994:root",
+        "accountId": "503511483994",
+        "accessKeyId": "ASIAXKO47QZNKKZT5NTS",
+        "sessionContext": {
+            "attributes": {
+                "creationDate": "2026-05-13T03:58:43Z",
+                "mfaAuthenticated": "false"
+            }
+        }
+    },
+    "eventTime": "2026-05-13T07:03:08Z",
+    "eventSource": "s3.amazonaws.com",
+    "eventName": "CreateBucket",
+    "awsRegion": "us-east-1",
+    "sourceIPAddress": "103.183.240.250",
+    "userAgent": "[Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36]",
+    "requestParameters": {
+        "bucketName": "codepipeline-us-east-1-4dbf2685d856-4c30-9056-f9ee487c813e",
+        "Host": "s3.us-east-1.amazonaws.com"
+    },
+    "responseElements": null,
+    "additionalEventData": {
+        "SignatureVersion": "SigV4",
+        "CipherSuite": "TLS_AES_128_GCM_SHA256",
+        "bytesTransferredIn": 0,
+        "AuthenticationMethod": "AuthHeader",
+        "x-amz-id-2": "S+ScBKbuZxfyU9/CxYTiC+9O9qodbmUKq2VfZN6VaRz4fgalUpuGUuB8hRgpbJV3A/e+GQNUrBM=",
+        "bytesTransferredOut": 0
+    },
+    "requestID": "8EY4YF63AHKK50JP",
+    "eventID": "a9626d61-9288-4a10-95df-c4754b1e0734",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "recipientAccountId": "503511483994",
+    "eventCategory": "Management",
+    "tlsDetails": {
+        "tlsVersion": "TLSv1.3",
+        "cipherSuite": "TLS_AES_128_GCM_SHA256",
+        "clientProvidedHostHeader": "s3.us-east-1.amazonaws.com"
+    }
+}

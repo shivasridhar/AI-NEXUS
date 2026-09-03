@@ -85,7 +85,13 @@ export default function Navbar() {
       </div>
 
       {/* Right: CTA */}
-      <div className="flex items-center">
+      <div className="flex items-center gap-4">
+        <Link
+          href="/login"
+          className="text-[15px] font-medium text-slate-600 hover:text-slate-900 transition-colors"
+        >
+          Log In
+        </Link>
         <Link
           href="/signup"
           className="px-6 py-2.5 text-indigo-600 bg-transparent border-[1.5px] border-indigo-600 font-medium text-[15px] rounded-full hover:bg-indigo-50 transition-all"

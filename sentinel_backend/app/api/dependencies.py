@@ -26,6 +26,17 @@ from app.models.tenant import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
 
+def decode_and_verify_token(token: str) -> str:
+    """
+    Decodes a JWT token and returns the subject (user_id).
+    Raises jwt.exceptions.InvalidTokenError (or subclass) if invalid.
+    """
+    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+    user_id: str = payload.get("sub")
+    if user_id is None:
+        raise JWTError("Token subject is missing")
+    return user_id
+
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -33,10 +44,7 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
+        user_id = decode_and_verify_token(token)
     except JWTError:
         raise credentials_exception
         
@@ -49,6 +57,32 @@ def get_current_active_user(current_user: User = Depends(get_current_user)) -> U
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+
+# ── RBAC: Role-Based Access Control ─────────────────────────────────────────
+from typing import List
+
+class RoleChecker:
+    """
+    Dependency that enforces role-based access control.
+    Usage: Depends(RoleChecker(["admin"])) or Depends(RoleChecker(["admin", "analyst"]))
+    """
+    def __init__(self, allowed_roles: List[str]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, current_user: User = Depends(get_current_active_user)) -> User:
+        if current_user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Required role: {', '.join(self.allowed_roles)}",
+            )
+        return current_user
+
+# Pre-built role dependencies for convenience
+require_admin = RoleChecker(["admin"])
+require_analyst = RoleChecker(["admin", "analyst"])
+require_viewer = RoleChecker(["admin", "analyst", "viewer"])
+
 
 from fastapi import Header
 from app.models.tenant import Workspace

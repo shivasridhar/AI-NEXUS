@@ -69,13 +69,8 @@ export default function SignupPage() {
   };
 
   const triggerGoogleAuth = () => {
-    const googleLoginWrapper = document.getElementById('google-login-wrapper');
-    if (googleLoginWrapper) {
-      const button = googleLoginWrapper.querySelector('div[role=button]') as HTMLElement;
-      if (button) {
-        button.click();
-      }
-    }
+    // Deprecated: Google Identity Services blocks programmatic clicks on their iframe.
+    // The official button is now rendered directly.
   };
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
@@ -106,12 +101,11 @@ export default function SignupPage() {
           });
           // @ts-ignore
           window.google.accounts.id.renderButton(
-            document.getElementById("google-login-wrapper"),
-            { theme: "outline", size: "large", type: "standard" }
+            document.getElementById("google-login-button-container"),
+            { theme: "outline", size: "large", type: "standard", width: "400" }
           );
         }}
       />
-      <div id="google-login-wrapper" style={{ display: 'none' }}></div>
       {/* Return to Home Link */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
@@ -245,9 +239,16 @@ export default function SignupPage() {
 
         {/* Social Options */}
         <div className="flex flex-col gap-3 mb-6">
-          <button type="button" onClick={triggerGoogleAuth} className="w-full h-11 flex items-center justify-center gap-2 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition-colors">
-            Continue with Google
-          </button>
+          <div className="relative w-full h-11 flex items-center justify-center gap-2 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition-colors overflow-hidden">
+            {/* Custom UI Button Text */}
+            <span>Continue with Google</span>
+            {/* Invisible Google Button Overlay */}
+            <div 
+              id="google-login-button-container" 
+              className="absolute inset-0 w-full h-full opacity-[0.01] cursor-pointer"
+              style={{ top: 0, left: 0 }}
+            ></div>
+          </div>
           <button type="button" className="w-full h-11 flex items-center justify-center gap-2 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition-colors">
             Continue with Microsoft
           </button>

@@ -32,14 +32,16 @@ class AIAnalystService:
             f"Gemini API call failed. Retrying (attempt {retry_state.attempt_number})..."
         )
     )
-    def _call_gemini_api(self, prompt: str, response_mime_type: str = "application/json") -> str:
+    def _call_gemini_api(self, prompt: str, response_mime_type: str = "application/json", response_schema=None) -> str:
         # Note: the new SDK config format
+        config_kwargs = {"response_mime_type": response_mime_type}
+        if response_schema:
+            config_kwargs["response_schema"] = response_schema
+            
         response = self.client.models.generate_content(
             model='gemini-3.5-flash',
             contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type=response_mime_type
-            )
+            config=types.GenerateContentConfig(**config_kwargs)
         )
         return response.text
 
@@ -52,7 +54,8 @@ class AIAnalystService:
         retry_count = 0 # Handled by tenacity, but we can capture failure state here
         
         try:
-            raw_response = self._call_gemini_api(prompt)
+            from app.schemas.ai_response import AIResponse
+            raw_response = self._call_gemini_api(prompt, response_schema=AIResponse)
             if not raw_response:
                 raise ValueError("Received empty response from Gemini API.")
             
@@ -66,6 +69,25 @@ class AIAnalystService:
             for key in required_keys:
                 if key not in parsed_response:
                     parsed_response[key] = "" if "analysis" in key or "summary" in key or "assessment" in key else []
+            
+            # Fallback parser for Findings and Recommendations if they are strings
+            if isinstance(parsed_response.get("findings"), list):
+                fixed_findings = []
+                for f in parsed_response["findings"]:
+                    if isinstance(f, str):
+                        fixed_findings.append({"title": "Unstructured Finding", "description": f, "severity": "Medium"})
+                    else:
+                        fixed_findings.append(f)
+                parsed_response["findings"] = fixed_findings
+                
+            if isinstance(parsed_response.get("recommendations"), list):
+                fixed_recs = []
+                for r in parsed_response["recommendations"]:
+                    if isinstance(r, str):
+                        fixed_recs.append({"action": "Review Finding", "rationale": r, "effort": "Medium"})
+                    else:
+                        fixed_recs.append(r)
+                parsed_response["recommendations"] = fixed_recs
             
             parsed_response["success"] = True
             return parsed_response

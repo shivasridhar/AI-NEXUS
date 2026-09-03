@@ -1,0 +1,92 @@
+{
+  "Records": [
+    {
+      "eventVersion": "1.08",
+      "eventID": "ent-001",
+      "eventTime": "2026-06-27T09:00:00Z",
+      "eventSource": "sts.amazonaws.com",
+      "eventName": "AssumeRole",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "10.0.15.23",
+      "recipientAccountId": "111111111111",
+      "userIdentity": {
+        "type": "IAMUser",
+        "userName": "payments-admin",
+        "arn": "arn:aws:iam::111111111111:user/payments-admin",
+        "accountId": "111111111111"
+      },
+      "requestParameters": {
+        "roleArn": "arn:aws:iam::111111111111:role/FinanceAdmin"
+      }
+    },
+    {
+      "eventVersion": "1.08",
+      "eventID": "ent-002",
+      "eventTime": "2026-06-27T09:03:00Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "GetObject",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "10.0.15.23",
+      "recipientAccountId": "111111111111",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "arn": "arn:aws:sts::111111111111:assumed-role/FinanceAdmin/session1",
+        "accountId": "111111111111"
+      },
+      "requestParameters": {
+        "bucketName": "finance-payroll",
+        "key": "salary_2026.xlsx"
+      }
+    },
+    {
+      "eventVersion": "1.08",
+      "eventID": "ent-003",
+      "eventTime": "2026-06-27T09:08:00Z",
+      "eventSource": "kms.amazonaws.com",
+      "eventName": "Decrypt",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "10.0.15.23",
+      "recipientAccountId": "111111111111",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "arn": "arn:aws:sts::111111111111:assumed-role/FinanceAdmin/session1",
+        "accountId": "111111111111"
+      },
+      "requestParameters": {
+        "keyId": "arn:aws:kms:us-east-1:111111111111:key/payroll-key"
+      }
+    },
+    {
+      "eventVersion": "1.08",
+      "eventID": "ent-004",
+      "eventTime": "2026-06-27T09:15:00Z",
+      "eventSource": "ec2.amazonaws.com",
+      "eventName": "StartInstances",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "172.16.10.20",
+      "recipientAccountId": "111111111111",
+      "userIdentity": {
+        "type": "IAMUser",
+        "userName": "ops-engineer",
+        "arn": "arn:aws:iam::111111111111:user/ops-engineer",
+        "accountId": "111111111111"
+      }
+    },
+    {
+      "eventVersion": "1.08",
+      "eventID": "ent-005",
+      "eventTime": "2026-06-27T09:20:00Z",
+      "eventSource": "iam.amazonaws.com",
+      "eventName": "CreateAccessKey",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "203.0.113.15",
+      "recipientAccountId": "111111111111",
+      "userIdentity": {
+        "type": "IAMUser",
+        "userName": "developer-prod",
+        "arn": "arn:aws:iam::111111111111:user/developer-prod",
+        "accountId": "111111111111"
+      }
+    }
+  ]
+}

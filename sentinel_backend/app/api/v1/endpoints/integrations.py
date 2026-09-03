@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any, List
 from datetime import datetime, timezone
 
-from app.api.dependencies import get_db, get_current_workspace
+from app.api.dependencies import get_db, get_current_workspace, require_admin
+from app.models.tenant import User
 from app.models.tenant import Workspace
 from app.models.integration import Integration
 from app.models.ingestion_job import IngestionJob
@@ -47,11 +48,62 @@ def list_integrations(
         })
     result.append(aws_info)
     
+    # Wazuh SIEM
+    wazuh_info = {
+        "provider": "wazuh",
+        "name": "Wazuh SIEM",
+        "status": configured_providers.get("wazuh").status if "wazuh" in configured_providers else "available",
+    }
+    if "wazuh" in configured_providers:
+        integration = configured_providers["wazuh"]
+        wazuh_info.update({
+            "id": str(integration.id),
+            "config": integration.config,
+            "last_sync_time": integration.last_sync_time.isoformat() if integration.last_sync_time else None,
+            "events_retrieved": integration.events_retrieved,
+            "error_message": integration.error_message
+        })
+    result.append(wazuh_info)
+
+    # Suricata IDS
+    suricata_info = {
+        "provider": "suricata",
+        "name": "Suricata IDS",
+        "status": configured_providers.get("suricata").status if "suricata" in configured_providers else "available",
+    }
+    if "suricata" in configured_providers:
+        integration = configured_providers["suricata"]
+        suricata_info.update({
+            "id": str(integration.id),
+            "config": integration.config,
+            "last_sync_time": integration.last_sync_time.isoformat() if integration.last_sync_time else None,
+            "events_retrieved": integration.events_retrieved,
+            "error_message": integration.error_message
+        })
+    result.append(suricata_info)
+
+    # OpenVAS Vulnerability Scanner
+    openvas_info = {
+        "provider": "openvas",
+        "name": "OpenVAS Scanner",
+        "status": configured_providers.get("openvas").status if "openvas" in configured_providers else "available",
+    }
+    if "openvas" in configured_providers:
+        integration = configured_providers["openvas"]
+        openvas_info.update({
+            "id": str(integration.id),
+            "config": integration.config,
+            "last_sync_time": integration.last_sync_time.isoformat() if integration.last_sync_time else None,
+            "events_retrieved": integration.events_retrieved,
+            "error_message": integration.error_message
+        })
+    result.append(openvas_info)
+
     # Coming soon
     result.append({"provider": "azure", "name": "Azure AD", "status": "coming_soon"})
     result.append({"provider": "okta", "name": "Okta", "status": "coming_soon"})
     result.append({"provider": "crowdstrike", "name": "CrowdStrike", "status": "coming_soon"})
-    
+
     return result
 
 
@@ -314,3 +366,45 @@ def sync_aws_integration(
     background_tasks.add_task(_run_aws_sync, str(integration.id), str(job.job_id))
 
     return {"message": "Sync started", "job_id": str(job.job_id)}
+
+
+# ── Generic connector configure endpoint ─────────────────────────────────
+SUPPORTED_CONNECTORS = {"wazuh", "suricata", "openvas"}
+
+@router.post("/{provider}/configure")
+def configure_connector(
+    provider: str,
+    config: Dict[str, Any],
+    db: Session = Depends(get_db),
+    workspace: Workspace = Depends(get_current_workspace)
+):
+    """
+    Configure a Wazuh, Suricata, or OpenVAS integration.
+    Stores the configuration and encrypted credentials.
+    """
+    if provider not in SUPPORTED_CONNECTORS:
+        raise HTTPException(status_code=400, detail=f"Unsupported connector: {provider}. Supported: {', '.join(SUPPORTED_CONNECTORS)}")
+
+    # Separate credentials from plain config
+    credential_fields = {"password", "secret_key", "access_key"}
+    credentials = {k: v for k, v in config.items() if k in credential_fields and v}
+    plain_config = {k: v for k, v in config.items() if k not in credential_fields}
+
+    encrypted_creds = encrypt_credentials(credentials) if credentials else ""
+
+    integration = db.query(Integration).filter(
+        Integration.workspace_id == workspace.id,
+        Integration.provider == provider
+    ).first()
+
+    if not integration:
+        integration = Integration(workspace_id=workspace.id, provider=provider)
+        db.add(integration)
+
+    integration.config = plain_config
+    integration.encrypted_credentials = encrypted_creds
+    integration.status = "configured"
+    integration.error_message = None
+    db.commit()
+
+    return {"message": f"{provider.capitalize()} integration configured successfully."}

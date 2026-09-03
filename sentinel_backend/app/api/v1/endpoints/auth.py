@@ -1,16 +1,20 @@
 import logging
 import traceback
-from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timedelta, timezone
+import jwt
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.dependencies import get_db, get_current_active_user
+from app.core.limiter import limiter
 from app.core.config import settings
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token
+from app.core.redis_client import get_redis_client
 from app.models.tenant import Organization, User, Workspace
 from app.schemas.auth import UserRegister, UserLogin, Token, AuthMeResponse, GoogleLoginRequest
 import secrets
+import asyncio
 
 # Google token verification
 from google.oauth2 import id_token
@@ -22,9 +26,12 @@ from app.core.events.contracts import AuditEvent
 from app.core.events.event_types import (
     ActorClassification, EventCategory, EventSeverity, EventStatus, ResourceClassification
 )
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -97,7 +104,8 @@ def provision_new_account(
 # POST /register
 # ─────────────────────────────────────────────────────────────────────────────
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
-def register_user(user_in: UserRegister, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register_user(request: Request, user_in: UserRegister, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_in.email).first()
     if user:
         raise HTTPException(
@@ -129,14 +137,21 @@ def register_user(user_in: UserRegister, db: Session = Depends(get_db)):
         secret_key=settings.SECRET_KEY,
         expires_delta=access_token_expires,
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+    refresh_token = create_refresh_token(
+        subject=str(user.id),
+        secret_key=settings.SECRET_KEY,
+        expires_delta=refresh_token_expires,
+    )
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # POST /login
 # ─────────────────────────────────────────────────────────────────────────────
 @router.post("/login", response_model=Token)
-def login(user_in: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, user_in: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == user_in.email).first()
 
     if user and user.provider == "GOOGLE" and not user.password_hash:
@@ -159,6 +174,12 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
         secret_key=settings.SECRET_KEY,
         expires_delta=access_token_expires,
     )
+    refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+    refresh_token = create_refresh_token(
+        subject=str(user.id),
+        secret_key=settings.SECRET_KEY,
+        expires_delta=refresh_token_expires,
+    )
 
     workspace = db.query(Workspace).filter(Workspace.organization_id == user.organization_id).first()
     if workspace:
@@ -180,14 +201,15 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
         except Exception:
             logger.warning("Audit event failed for LOGIN_SUCCESS (non-fatal): %s", traceback.format_exc())
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # POST /google   — full production-hardened Google OAuth flow
 # ─────────────────────────────────────────────────────────────────────────────
 @router.post("/google", response_model=Token)
-def google_auth(request: GoogleLoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def google_auth(request: Request, body: GoogleLoginRequest, db: Session = Depends(get_db)):
     # ── 0. Guard: GOOGLE_CLIENT_ID must be configured ────────────────────────
     if not settings.GOOGLE_CLIENT_ID:
         logger.error("Google Sign-In attempted but GOOGLE_CLIENT_ID is not set on the server.")
@@ -199,7 +221,7 @@ def google_auth(request: GoogleLoginRequest, db: Session = Depends(get_db)):
     # ── 1. Verify the Google ID Token ────────────────────────────────────────
     try:
         idinfo = id_token.verify_oauth2_token(
-            request.credential,
+            body.credential,
             google_requests.Request(),
             settings.GOOGLE_CLIENT_ID,
             clock_skew_in_seconds=10,  # Tolerate minor clock drift
@@ -363,6 +385,12 @@ def google_auth(request: GoogleLoginRequest, db: Session = Depends(get_db)):
         secret_key=settings.SECRET_KEY,
         expires_delta=access_token_expires,
     )
+    refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+    refresh_token = create_refresh_token(
+        subject=str(user.id),
+        secret_key=settings.SECRET_KEY,
+        expires_delta=refresh_token_expires,
+    )
 
     # ── 8. Audit: login success ───────────────────────────────────────────────
     workspace = db.query(Workspace).filter(Workspace.organization_id == user.organization_id).first()
@@ -385,7 +413,7 @@ def google_auth(request: GoogleLoginRequest, db: Session = Depends(get_db)):
         except Exception:
             logger.warning("Audit event LOGIN_SUCCESS failed (non-fatal): %s", traceback.format_exc())
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -422,3 +450,83 @@ def read_user_me(
         if workspace
         else {},
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /logout — blacklists the current token via Redis
+# ─────────────────────────────────────────────────────────────────────────────
+from pydantic import BaseModel as _BM
+
+class _LogoutRequest(_BM):
+    refresh_token: str = ""
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout(
+    body: _LogoutRequest = _LogoutRequest(),
+    current_user: User = Depends(get_current_active_user),
+):
+    try:
+        redis = await get_redis_client()
+        # Blacklist the refresh token if provided
+        if body.refresh_token:
+            try:
+                payload = jwt.decode(body.refresh_token, settings.SECRET_KEY, algorithms=["HS256"])
+                jti = payload.get("jti", "")
+                ttl = max(int(payload.get("exp", 0) - datetime.now(timezone.utc).timestamp()), 0)
+                if jti and ttl > 0:
+                    await redis.setex(f"blacklist:{jti}", ttl, "1")
+            except Exception:
+                pass  # Invalid refresh token — still proceed with logout
+    except Exception:
+        logger.warning("Redis unavailable during logout (non-fatal)")
+
+    return {"message": "Successfully logged out"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /refresh — issues new access token from valid refresh token
+# ─────────────────────────────────────────────────────────────────────────────
+class _RefreshRequest(_BM):
+    refresh_token: str
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token_endpoint(body: _RefreshRequest, db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired refresh token",
+    )
+    try:
+        payload = jwt.decode(body.refresh_token, settings.SECRET_KEY, algorithms=["HS256"])
+        if payload.get("type") != "refresh":
+            raise credentials_exception
+        user_id = payload.get("sub")
+        jti = payload.get("jti", "")
+        if not user_id:
+            raise credentials_exception
+
+        # Check if token is blacklisted
+        try:
+            redis = await get_redis_client()
+            if jti and await redis.get(f"blacklist:{jti}"):
+                raise credentials_exception
+        except credentials_exception.__class__:
+            raise
+        except Exception:
+            pass  # Redis down — allow refresh (fail open for availability)
+
+    except jwt.ExpiredSignatureError:
+        raise credentials_exception
+    except jwt.InvalidTokenError:
+        raise credentials_exception
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.is_active:
+        raise credentials_exception
+
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    new_access_token = create_access_token(
+        subject=str(user.id),
+        secret_key=settings.SECRET_KEY,
+        expires_delta=access_token_expires,
+    )
+    return {"access_token": new_access_token, "token_type": "bearer"}

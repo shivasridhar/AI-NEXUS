@@ -14,4 +14,3 @@ class BaseCollector(ABC):
         Collect evidence specific to this collector.
         Must return a dictionary of evidence key-values.
         """
-        pass

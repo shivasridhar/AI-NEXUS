@@ -1,0 +1,50 @@
+{
+    "eventVersion": "1.11",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "503511483994",
+        "arn": "arn:aws:iam::503511483994:root",
+        "accountId": "503511483994",
+        "accessKeyId": "ASIAXKO47QZNKKZT5NTS",
+        "sessionContext": {
+            "attributes": {
+                "creationDate": "2026-05-13T03:58:43Z",
+                "mfaAuthenticated": "false"
+            }
+        }
+    },
+    "eventTime": "2026-05-13T07:03:10Z",
+    "eventSource": "iam.amazonaws.com",
+    "eventName": "CreatePolicy",
+    "awsRegion": "us-east-1",
+    "sourceIPAddress": "103.183.240.250",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+    "requestParameters": {
+        "policyName": "CodePipeline-CodeConnections-us-east-1-serverless-pipeline",
+        "path": "/service-role/",
+        "policyDocument": "{\n    \"Version\": \"2012-10-17\",\n    \"Statement\": [\n        {\n            \"Effect\": \"Allow\",\n            \"Action\": [\n                \"codeconnections:UseConnection\",\n                \"codestar-connections:UseConnection\"\n            ],\n            \"Resource\": [\n                \"arn:aws:codestar-connections:*:503511483994:connection/02b32a61-6fec-43a2-8285-fc410e201c25\",\n                \"arn:aws:codeconnections:*:503511483994:connection/02b32a61-6fec-43a2-8285-fc410e201c25\"\n            ]\n        }\n    ]\n}",
+        "description": "Policy used in trust relationship with CodePipeline for CodeConnections Action"
+    },
+    "responseElements": {
+        "policy": {
+            "policyName": "CodePipeline-CodeConnections-us-east-1-serverless-pipeline",
+            "policyId": "ANPAXKO47QZNBJLEDJFIQ",
+            "arn": "arn:aws:iam::503511483994:policy/service-role/CodePipeline-CodeConnections-us-east-1-serverless-pipeline",
+            "path": "/service-role/",
+            "defaultVersionId": "v1",
+            "attachmentCount": 0,
+            "permissionsBoundaryUsageCount": 0,
+            "isAttachable": true,
+            "description": "Policy used in trust relationship with CodePipeline for CodeConnections Action",
+            "createDate": "May 13, 2026, 7:03:10 AM",
+            "updateDate": "May 13, 2026, 7:03:10 AM"
+        }
+    },
+    "requestID": "a1f22eb3-3194-4393-a9f8-6b072f5b8cae",
+    "eventID": "d4c74a72-92d0-42d3-b04a-a8f485f7be1a",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "recipientAccountId": "503511483994",
+    "eventCategory": "Management"
+}

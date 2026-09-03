@@ -35,42 +35,21 @@ class AwsCloudTrailSource(IngestionSource):
         self.client = self._create_client()
 
     def _create_client(self):
+        from app.services.aws.session_provider import AwsSessionProvider
         try:
-            if self.auth_method == "access_key":
-                if not self.access_key or not self.secret_key:
-                    raise ValueError("Access Key ID and Secret Access Key must be provided for 'access_key' auth method.")
-                return boto3.client(
-                    'cloudtrail',
-                    region_name=self.region,
-                    aws_access_key_id=self.access_key,
-                    aws_secret_access_key=self.secret_key
-                )
-            elif self.auth_method == "role_arn":
-                if not self.role_arn:
-                    raise ValueError("Role ARN must be provided for 'role_arn' auth method.")
-                sts_client = boto3.client('sts', region_name=self.region)
-                assume_kwargs = {
-                    "RoleArn": self.role_arn,
-                    "RoleSessionName": "SentinelAI_CloudTrailSync"
-                }
-                # Add External ID if provided — prevents confused deputy attacks
-                if self.external_id:
-                    assume_kwargs["ExternalId"] = self.external_id
-                
-                assumed_role = sts_client.assume_role(**assume_kwargs)
-                credentials = assumed_role['Credentials']
-                return boto3.client(
-                    'cloudtrail',
-                    region_name=self.region,
-                    aws_access_key_id=credentials['AccessKeyId'],
-                    aws_secret_access_key=credentials['SecretAccessKey'],
-                    aws_session_token=credentials['SessionToken']
-                )
-            else:
-                raise ValueError(f"Unsupported auth_method: {self.auth_method}")
-        except ClientError as e:
-            logger.error(f"Failed to create AWS CloudTrail client: {str(e)}")
-            raise ValueError(f"AWS Authentication failed: {str(e)}")
+            session = AwsSessionProvider.get_session(
+                auth_method=self.auth_method,
+                region=self.region,
+                access_key=self.access_key,
+                secret_key=self.secret_key,
+                role_arn=self.role_arn,
+                external_id=self.external_id,
+                session_name="SentinelAI_CloudTrailSync"
+            )
+            return session.client('cloudtrail')
+        except Exception as e:
+            logger.error("Failed to create AWS CloudTrail client: %s", str(e))
+            raise ValueError(f"AWS Authentication failed: {str(e)}") from e
 
     def fetch_events(self) -> Dict[str, Any]:
         """
@@ -92,7 +71,7 @@ class AwsCloudTrailSource(IngestionSource):
                             event_data = json.loads(cloudtrail_event_str)
                             records.append(event_data)
                         except json.JSONDecodeError:
-                            logger.warning(f"Failed to parse CloudTrailEvent JSON: {cloudtrail_event_str[:100]}")
+                            logger.warning("Failed to parse CloudTrailEvent JSON: %s", cloudtrail_event_str[:100])
 
         except ClientError as e:
             error_code = e.response.get('Error', {}).get('Code', 'Unknown')

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 
-from app.api.dependencies import get_db, get_current_active_user, get_current_workspace
+from app.api.dependencies import get_db, get_current_active_user, get_current_workspace, require_admin
 from app.models.tenant import Organization, Workspace, User
 from pydantic import BaseModel
 
@@ -33,7 +33,7 @@ class UpdateOrgRequest(BaseModel):
 def update_my_organization(
     request: UpdateOrgRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(require_admin)
 ):
     org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
     if not org:

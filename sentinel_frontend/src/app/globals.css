@@ -855,3 +855,62 @@
   }
 }
 
+/* ============================================================================
+   Light Beam Arrow Animation
+   ============================================================================ */
+@keyframes beamFlow {
+  0% {
+    stroke-dashoffset: 48;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes beamPulse {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0.1;
+  }
+  30% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0.1;
+  }
+}
+
+@keyframes beamPulseVert {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0.1;
+  }
+  30% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0.1;
+  }
+}
+
+.animate-beam-flow {
+  animation: beamFlow 1.4s linear infinite;
+}
+
+.animate-beam-pulse {
+  animation: beamPulse 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-beam-pulse-vert {
+  animation: beamPulseVert 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+

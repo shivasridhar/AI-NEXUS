@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useIdentities } from "@/lib/queries";
+import { useIdentities, useExportReport } from "@/lib/queries";
 import { Search, Download, ChevronDown, ChevronRight, BrainCircuit, GitBranch, Shield, Eye, Settings2 } from "lucide-react";
 import Link from "next/link";
 
@@ -14,6 +14,22 @@ const getRiskConfig = (score: number) => {
 
 export default function MachineIdentitiesPage() {
   const { data: identitiesData, isLoading } = useIdentities();
+  const exportReport = useExportReport();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadIdentityReport = async (identityId: string) => {
+    setDownloadingId(identityId);
+    try {
+      await exportReport.mutateAsync({
+        identity_id: identityId,
+        filename: `identity_report_${identityId.slice(0, 8)}.pdf`
+      });
+    } catch (err) {
+      console.error("Failed to download identity PDF report:", err);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState("all");
@@ -208,6 +224,19 @@ export default function MachineIdentitiesPage() {
                           <GitBranch className="w-3.5 h-3.5" />
                           Graph
                         </Link>
+                        {/* Download PDF Button */}
+                        <button
+                          onClick={() => handleDownloadIdentityReport(id.id)}
+                          disabled={downloadingId !== null}
+                          className="h-8 w-8 border border-slate-200 hover:border-indigo-400 text-slate-700 hover:text-indigo-600 rounded-lg flex items-center justify-center bg-white transition-all shadow-sm disabled:opacity-50"
+                          title="Download Security Profile PDF"
+                        >
+                          {downloadingId === id.id ? (
+                            <div className="w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5" />
+                          )}
+                        </button>
                       </div>
                     </td>
                   </tr>

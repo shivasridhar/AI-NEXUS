@@ -1,9 +1,10 @@
 import jwt
-from datetime import datetime, timedelta
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Any, Union
 import bcrypt
 
-# JWT Settings (These will be moved to config shortly)
+# JWT Settings
 ALGORITHM = "HS256"
 
 def hash_password(password: str) -> str:
@@ -21,10 +22,27 @@ def create_access_token(
     subject: Union[str, Any], secret_key: str, expires_delta: timedelta = None
 ) -> str:
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-        
-    to_encode = {"exp": expire, "sub": str(subject)}
+        expire = datetime.now(timezone.utc) + timedelta(days=7)
+
+    to_encode = {"exp": expire, "sub": str(subject), "type": "access"}
+    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def create_refresh_token(
+    subject: Union[str, Any], secret_key: str, expires_delta: timedelta = None
+) -> str:
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(days=7)
+
+    to_encode = {
+        "exp": expire,
+        "sub": str(subject),
+        "type": "refresh",
+        "jti": secrets.token_hex(16),  # unique token ID for blacklisting
+    }
     encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
     return encoded_jwt

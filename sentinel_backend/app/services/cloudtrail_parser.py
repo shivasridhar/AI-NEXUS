@@ -58,10 +58,8 @@ class CloudTrailParser:
             
             # Verify timestamp format
             try:
-                # Pydantic or datetime parse check
-                if isinstance(record["eventTime"], str):
-                    # Check ISO format
-                    datetime.fromisoformat(record["eventTime"].replace('Z', '+00:00'))
+                from app.services.utils.time_utils import normalize_timestamp_utc
+                normalize_timestamp_utc(record["eventTime"])
             except Exception:
                 logger.warning(f"Invalid timestamp in record: {record['eventTime']}. Skipping.")
                 continue

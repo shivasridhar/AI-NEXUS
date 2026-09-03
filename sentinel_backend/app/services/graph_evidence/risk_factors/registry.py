@@ -8,7 +8,6 @@ class RiskFactorEvaluator(ABC):
         Evaluate a specific risk factor. Returns None if not applicable,
         or a dict with details if the risk factor is present.
         """
-        pass
 
 class HighPrivilegeEvaluator(RiskFactorEvaluator):
     def evaluate(self, evidence: Dict[str, Any], metrics: Dict[str, Any]) -> Dict[str, Any]:

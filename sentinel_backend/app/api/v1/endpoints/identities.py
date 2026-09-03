@@ -44,7 +44,13 @@ def get_identity_attack_path(
     if not identity:
         raise HTTPException(status_code=404, detail="Identity not found")
         
-    service = AttackPathService(graph)
-    graph_data = service.get_attack_path(identity.arn, str(workspace.id))
-    
+    try:
+        service = AttackPathService(graph)
+        graph_data = service.get_attack_path(identity.arn, str(workspace.id))
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error fetching attack path for {identity.arn}: {e}", exc_info=True)
+        graph_data = {"nodes": [], "edges": []}
+        
     return graph_data

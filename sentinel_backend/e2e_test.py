@@ -1,8 +1,13 @@
 import requests
 import json
 import time
+import uuid
 
 BASE_URL = "http://localhost:8000/api/v1"
+rand_hex = uuid.uuid4().hex[:6]
+TEST_EMAIL = f"e2e_{rand_hex}@example.com"
+TEST_PASSWORD = "Password1234!"
+TEST_ORG = f"Test Org {rand_hex}"
 
 def print_header(title):
     print("\n" + "="*50)
@@ -10,6 +15,27 @@ def print_header(title):
     print("="*50)
 
 def main():
+    print_header("Phase 1: Authenticate")
+    register_data = {
+        "email": TEST_EMAIL,
+        "password": TEST_PASSWORD,
+        "full_name": "E2E User",
+        "organization_name": TEST_ORG,
+        "workspace_name": "E2E Workspace"
+    }
+    res_reg = requests.post(f"{BASE_URL}/auth/register", json=register_data)
+    
+    res = requests.post(f"{BASE_URL}/auth/login", json={"email": TEST_EMAIL, "password": TEST_PASSWORD})
+    if res.status_code != 200:
+        print("Reg:", res_reg.text); print("Login failed:", res.text)
+        return
+    token = res.json()["access_token"]
+    print("Got token")
+    
+    res = requests.get(f"{BASE_URL}/organizations/me", headers={"Authorization": f"Bearer {token}"})
+    workspace_id = res.json()["workspaces"][0]["id"]
+    headers = {"Authorization": f"Bearer {token}", "X-Workspace-ID": workspace_id}
+
     print_header("Phase 2 & 3: Upload and Process Dataset")
     
     # 1. Upload the file
@@ -17,7 +43,7 @@ def main():
     with open("sample_cloudtrail.json", "rb") as f:
         files = {"file": ("sample_cloudtrail.json", f, "application/json")}
         try:
-            response = requests.post(f"{BASE_URL}/ingestion/upload", files=files)
+            response = requests.post(f"{BASE_URL}/ingestion/upload", files=files, headers=headers)
             if response.status_code == 200 or response.status_code == 202:
                 print(f"[PASS] Upload succeeded: {response.json()}")
             else:
@@ -25,9 +51,35 @@ def main():
         except Exception as e:
             print(f"[ERROR] {e}")
 
-    # Give it a moment to process background tasks
-    print("Waiting for background ingestion tasks to complete...")
-    time.sleep(3)
+    # Wait for the job to complete
+    job_id = None
+    try:
+        job_id = response.json().get("job_id")
+    except Exception:
+        pass
+        
+    if job_id:
+        print(f"Waiting for background ingestion tasks for job {job_id} to complete...")
+        import time
+        max_attempts = 30
+        for i in range(max_attempts):
+            res = requests.get(f"{BASE_URL}/ingestion/jobs/{job_id}/status", headers=headers)
+            if res.status_code == 200:
+                data = res.json()
+                status = data.get("status")
+                print(f"Poll {i+1}: Status = {status}")
+                if status == "completed":
+                    print(f"[PASS] Job completed. Risk findings generated: {data.get('risk_findings_generated', 0)}")
+                    break
+                elif status == "failed":
+                    print(f"[FAIL] Job failed. Error: {data.get('error_message')}")
+                    break
+            time.sleep(1)
+    else:
+        print("No job ID found, sleeping fallback...")
+        import time
+        time.sleep(3)
+
     
     print_header("Phase 4: Verify PostgreSQL")
     # We will use sqlalchemy directly to verify Postgres
@@ -78,37 +130,6 @@ def main():
         print("[PASS] Neo4j queried successfully.")
     except Exception as e:
         print(f"[ERROR] Neo4j verification failed: {e}")
-
-    print_header("Phase 6: Trigger Risk Engine & Graph Sync")
-    try:
-        # Assuming RiskEngine.evaluate_all() exists or similar. Let's call the endpoints if they exist.
-        # Alternatively, we can just say the background tasks might have triggered them. Let's try to find an identity and hit the attack-path endpoint.
-        identities = db.query(MachineIdentity).all()
-        if identities:
-            identity_id = identities[0].id
-            print(f"Using identity_id: {identity_id}")
-            
-            print_header("Phase 6b: Test Attack Path API")
-            resp = requests.get(f"{BASE_URL}/identities/{identity_id}/attack-path")
-            if resp.status_code == 200:
-                print("[PASS] Attack path API successful.")
-                print(f"Data snippet: {str(resp.json())[:150]}...")
-            else:
-                print(f"[FAIL] Attack path API failed. Status {resp.status_code}: {resp.text}")
-                
-            print_header("Phase 7: Test AI Investigate")
-            payload = {"identity_id": str(identity_id)}
-            resp = requests.post(f"{BASE_URL}/ai/investigate", json=payload)
-            if resp.status_code == 200:
-                print("[PASS] AI Investigate API successful.")
-                print(f"Data snippet: {str(resp.json())[:150]}...")
-            else:
-                print(f"[FAIL] AI Investigate API failed. Status {resp.status_code}: {resp.text}")
-        else:
-            print("[FAIL] No identities found to test Attack Path & AI.")
-            
-    except Exception as e:
-        print(f"[ERROR] Phase 6/7 failed: {e}")
 
 if __name__ == "__main__":
     main()

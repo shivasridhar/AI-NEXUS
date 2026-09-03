@@ -1,33 +1,15 @@
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from app.main import app
 from app.api.dependencies import get_db, get_current_active_user
 from app.models.tenant import Organization, Workspace, User
-from app.models.base import Base
 from app.models.machine_identity import MachineIdentity
-import uuid
 
-# Setup test DB
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
-
-app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
-@pytest.fixture(scope="module")
-def setup_database():
-    Base.metadata.create_all(bind=engine)
-    db = TestingSessionLocal()
+@pytest.fixture
+def setup_database(postgres_db):
+    db = postgres_db
     
     # Create Tenant A
     org_a = Organization(name="Org A", slug="org-a")
@@ -55,17 +37,21 @@ def setup_database():
     db.commit()
     
     yield {"user_a": user_a, "user_b": user_b, "ws_a": ws_a, "ws_b": ws_b, "ident_a": ident_a}
-    
-    Base.metadata.drop_all(bind=engine)
 
-def test_tenant_isolation(setup_database):
+@pytest.mark.pg
+def test_tenant_isolation(postgres_db, setup_database):
+    # Override get_db to use our testcontainer DB
+    app.dependency_overrides[get_db] = lambda: postgres_db
     data = setup_database
     
     # Override current user to User B
     app.dependency_overrides[get_current_active_user] = lambda: data["user_b"]
     
     # User B requests identities
-    response = client.get("/api/v1/identities")
+    response = client.get(
+        "/api/v1/identities", 
+        headers={"x-workspace-id": str(data["ws_b"].id)}
+    )
     assert response.status_code == 200
     identities = response.json()
     
@@ -79,7 +65,10 @@ def test_tenant_isolation(setup_database):
     app.dependency_overrides[get_current_active_user] = lambda: data["user_a"]
     
     # User A requests identities
-    response = client.get("/api/v1/identities")
+    response = client.get(
+        "/api/v1/identities", 
+        headers={"x-workspace-id": str(data["ws_a"].id)}
+    )
     assert response.status_code == 200
     identities = response.json()
     

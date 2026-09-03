@@ -14,7 +14,9 @@ class AttackPathService:
         edge_ids = set()
         
         for record in result:
-            path = record["path"]
+            path = record.get("path")
+            if not path:
+                continue
             
             for node in path.nodes:
                 node_id = str(node.element_id)
@@ -22,7 +24,13 @@ class AttackPathService:
                     labels = list(node.labels)
                     label = labels[0] if labels else "Unknown"
                     
-                    data = dict(node.items())
+                    data = {}
+                    for k, v in node.items():
+                        if hasattr(v, "iso_format"):
+                            data[k] = v.iso_format()
+                        else:
+                            data[k] = v
+
                     if label in ("Identity", "Resource"):
                         name = data.get("arn", "")
                     elif label == "IPAddress":
@@ -53,6 +61,34 @@ class AttackPathService:
                         "type": "smoothstep",
                         "animated": True
                     })
+        
+        # Graceful fallback: If no attack path is found, we should at least return the identity node itself
+        # so the graph isn't entirely empty.
+        if not nodes_dict:
+            # Try to fetch just the identity node
+            identity_query = "MATCH (i:Identity {arn: $arn, workspace_id: $workspace_id}) RETURN i"
+            identity_result = self.session.run(identity_query, arn=arn, workspace_id=workspace_id)
+            for record in identity_result:
+                node = record["i"]
+                node_id = str(node.element_id)
+                
+                data = {}
+                for k, v in node.items():
+                    if hasattr(v, "iso_format"):
+                        data[k] = v.iso_format()
+                    else:
+                        data[k] = v
+                        
+                nodes_dict[node_id] = {
+                    "id": node_id,
+                    "type": "customNode",
+                    "data": {
+                        "label": "Identity",
+                        "name": data.get("arn", ""),
+                        "properties": data
+                    },
+                    "position": {"x": 0, "y": 0}
+                }
                     
         return {
             "nodes": list(nodes_dict.values()),

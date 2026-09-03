@@ -53,7 +53,7 @@ class ExplainabilityService:
                 payload["explainability"] = self._generate_fallback(risk_factors, metrics, evidence)
                 payload["ai_status"] = "unavailable"
         except GeminiRateLimitError as re:
-            logger.warning(f"AI Explainability rate limited (429) for finding {finding_id}: {re}")
+            logger.warning("AI Explainability rate limited (429) for finding {finding_id}: %s", re)
             payload["explainability"] = (
                 "⚠️ Gemini API rate limit exceeded (429). "
                 "Displaying dynamic rule-based graph analysis context below:\n\n"

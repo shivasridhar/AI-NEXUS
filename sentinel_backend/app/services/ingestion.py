@@ -39,7 +39,7 @@ class IngestionService:
         try:
             events = CloudTrailParser.parse_log_file(json_data)
         except Exception as e:
-            logger.error(f"Failed to parse CloudTrail log file: {e}")
+            logger.error("Failed to parse CloudTrail log file: %s", e)
             stats["failed"] = 1
             # Re-raise standard value errors for endpoint user-friendly error formatting
             raise e
@@ -99,7 +99,7 @@ class IngestionService:
                 stats["access_logs_created"] += 1
                     
             except Exception as e:
-                logger.error(f"Error processing event {event.eventID}: {e}")
+                logger.error("Error processing event {event.eventID}: %s", e)
                 stats["failed"] += 1
                 # Rollback transaction immediately and stop ingestion on real database failures
                 self.db.rollback()

@@ -53,7 +53,7 @@ class GraphProjection:
                 
             session.close()
         except Exception as e:
-            logger.error(f"GraphProjection Error (Neo4j might be unavailable): {e}")
+            logger.error("GraphProjection Error (Neo4j might be unavailable): %s", e)
             summary["graph_unavailable"] = True
             
         return summary

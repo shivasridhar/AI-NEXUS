@@ -1,0 +1,28 @@
+{
+  "correlation": {
+    "time_window_minutes": 5,
+    "grouping_keys": ["actor", "asset", "source_ip"],
+    "min_events_for_incident": 2,
+    "multi_source_escalation": true,
+    "severity_mapping": {
+      "CRITICAL": 4,
+      "HIGH": 3,
+      "MEDIUM": 2,
+      "LOW": 1,
+      "INFO": 0
+    }
+  },
+  "retention": {
+    "incidents_days": 90,
+    "events_days": 30
+  },
+  "api": {
+    "default_pagination_limit": 50,
+    "max_pagination_limit": 500
+  },
+  "websockets": {
+    "enabled": true,
+    "ping_interval": 30,
+    "ping_timeout": 10
+  }
+}

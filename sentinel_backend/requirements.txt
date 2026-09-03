@@ -16,3 +16,10 @@ boto3
 reportlab
 google-auth
 requests
+pytest
+pytest-asyncio
+testcontainers[postgres]
+slowapi
+langgraph==1.2.9
+redis>=5.0.0
+

@@ -4,6 +4,7 @@ from app.models.machine_identity import MachineIdentity
 from app.models.access_log import AccessLog
 from app.models.tenant import Workspace
 from app.graph.graph_builder import GraphBuilder
+from app.services.ingestion_adapter import IngestionAdapter
 import logging
 
 from app.core.events.bus import event_bus
@@ -48,48 +49,90 @@ class GraphSyncService:
                 
         logger.info("Graph synchronization complete.")
 
-    def sync_new_events(self, new_logs: list, workspace_id: str) -> dict:
+    def sync_new_events(self, events: list, workspace_id: str) -> dict:
         """
-        Synchronizes ONLY newly inserted access logs to the Neo4j graph, avoiding duplication.
-        Returns metrics on nodes and relationships processed.
+        Synchronizes newly inserted logs or events to the Neo4j graph using the unified ingestion adapter.
         """
-        logger.info(f"Syncing {len(new_logs)} new access logs to Neo4j...")
+        logger.info(f"Syncing {len(events)} new events to Neo4j...")
         
-        unique_arns = {log.identity_arn for log in new_logs if log.identity_arn and log.identity_arn != "unknown"}
-        unique_ips = {log.source_ip for log in new_logs if log.source_ip}
-        unique_resources = {log.resource_arn for log in new_logs if log.resource_arn}
-
-        # 1. Sync Identities
-        for arn in unique_arns:
-            ident = self.db.query(MachineIdentity).filter(MachineIdentity.arn == arn, MachineIdentity.workspace_id == workspace_id).first()
-            if ident:
-                self.builder.sync_identity(ident.arn, ident.account_id, ident.identity_type, workspace_id)
-                
-        # 2. Sync Access Logs
         relationships_created = 0
-        for log in new_logs:
-            if not log.identity_arn or log.identity_arn == "unknown":
+        nodes_created = 0
+        
+        for record in events:
+            # 1. Normalize the record using IngestionAdapter
+            if hasattr(record, "identity_arn"): # It's an AccessLog
+                unified_event = IngestionAdapter.from_access_log(record)
+                # Ensure AWS distinct graph paths stay exactly as-is for AccessLogs
+                if record.identity_arn and record.identity_arn != "unknown":
+                    ident = self.db.query(MachineIdentity).filter(MachineIdentity.arn == record.identity_arn, MachineIdentity.workspace_id == workspace_id).first()
+                    if ident:
+                        self.builder.sync_identity(ident.arn, ident.account_id, ident.identity_type, workspace_id)
+                        nodes_created += 1
+                        
+                    event_time_str = record.event_time.isoformat()
+                    
+                    if record.source_ip:
+                        self.builder.sync_ip_actor(record.source_ip, workspace_id) # Uses IP actor query just in case, but sync_ip works too
+                        self.builder.link_identity_ip(record.identity_arn, record.source_ip, event_time_str, workspace_id)
+                        relationships_created += 1
+                        
+                    if record.resource_arn:
+                        self.builder.sync_resource(record.resource_arn, workspace_id)
+                        self.builder.link_identity_resource(record.identity_arn, record.resource_arn, event_time_str, workspace_id)
+                        relationships_created += 1
+                        
+                    if record.event_name == "AssumeRole" and record.resource_arn:
+                        self.builder.link_assume_role(record.identity_arn, record.resource_arn, event_time_str, workspace_id)
+                        relationships_created += 1
+            else: # It's a CanonicalEvent
+                unified_event = IngestionAdapter.from_canonical_event(record)
+                
+            # 2. Push Unified Event to graph
+            if not unified_event:
                 continue
                 
-            event_time_str = log.event_time.isoformat()
+            # Sync Actor node properly labeled
+            if unified_event.actor_type == "Identity":
+                # Will be synced by AccessLog logic above if AWS, but just in case
+                self.builder.sync_identity(unified_event.actor_id, "unknown", "Unknown", workspace_id)
+            elif unified_event.actor_type == "Host":
+                self.builder.sync_host_actor(unified_event.actor_id, workspace_id)
+            elif unified_event.actor_type == "IPAddress":
+                self.builder.sync_ip_actor(unified_event.actor_id, workspace_id)
+            nodes_created += 1
                 
-            if log.source_ip:
-                self.builder.sync_ip(log.source_ip, workspace_id)
-                self.builder.link_identity_ip(log.identity_arn, log.source_ip, event_time_str, workspace_id)
-                relationships_created += 1
-                
-            if log.resource_arn:
-                self.builder.sync_resource(log.resource_arn, workspace_id)
-                self.builder.link_identity_resource(log.identity_arn, log.resource_arn, event_time_str, workspace_id)
-                relationships_created += 1
-                
-            if log.event_name == "AssumeRole" and log.resource_arn:
-                self.builder.link_assume_role(log.identity_arn, log.resource_arn, event_time_str, workspace_id)
-                relationships_created += 1
+            # Sync Asset node
+            if unified_event.asset_id:
+                if unified_event.asset_type == "Resource":
+                    self.builder.sync_resource(unified_event.asset_id, workspace_id)
+                elif unified_event.asset_type == "Host":
+                    self.builder.sync_host_actor(unified_event.asset_id, workspace_id) # Using actor merge sets both, safe fallback
+                elif unified_event.asset_type == "IPAddress":
+                    self.builder.sync_ip_actor(unified_event.asset_id, workspace_id)
+                nodes_created += 1
+            
+            # Sync Event and Targets
+            self.builder.sync_event(
+                event_id=unified_event.event_id,
+                workspace_id=workspace_id,
+                timestamp=unified_event.timestamp,
+                source_tool=unified_event.source_tool,
+                severity=unified_event.severity,
+                mitre_technique=unified_event.mitre_technique,
+                actor_id=unified_event.actor_id,
+                asset_id=unified_event.asset_id
+            )
+            nodes_created += 1 # Event node
+            relationships_created += 2 # TRIGGERED, TARGETS (max)
+            
+            # 3. Correlate to Incident
+            self.builder.correlate_events_to_incident(
+                event_id=unified_event.event_id,
+                workspace_id=workspace_id
+            )
+            relationships_created += 1 # PART_OF
 
-        nodes_created = len(unique_arns) + len(unique_ips) + len(unique_resources)
-
-        logger.info(f"Neo4j sync complete. Nodes affected: {nodes_created}, Relationships affected: {relationships_created}")
+        logger.info("Neo4j sync complete. Nodes affected: %s, Relationships affected: %s", nodes_created, relationships_created)
         
         workspace = self.db.query(Workspace).filter(Workspace.id == workspace_id).first()
         org_id = str(workspace.organization_id) if workspace else "SYSTEM"

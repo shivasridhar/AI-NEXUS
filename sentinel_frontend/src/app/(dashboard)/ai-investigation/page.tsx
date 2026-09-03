@@ -1,12 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, BrainCircuit, Sparkles, Send, ShieldCheck, ArrowRight, Loader2 } from "lucide-react";
-import { useAiInvestigate } from "@/lib/queries";
+import { useState, useEffect, useRef } from "react";
+import { Plus, BrainCircuit, Sparkles, Send, ShieldCheck, ArrowRight, Loader2, Clock, Trash2 } from "lucide-react";
+import { useAiInvestigate, useAiConversations, useCreateAiConversation, useUpdateAiConversation } from "@/lib/queries";
 import { motion, AnimatePresence } from "framer-motion";
-const RECENT_CHATS = [
-  { id: 1, title: "New Investigation", time: "just now" },
-];
 
 const QUICK_PROMPTS = [
   "What identities are most at risk this week?",
@@ -15,51 +12,142 @@ const QUICK_PROMPTS = [
   "Draft a least-privilege policy for terraform-ci-runner",
 ];
 
+interface ChatSession {
+  id: string;
+  title: string;
+  messages: {role: 'user' | 'ai', content: string}[];
+  created_at: string;
+}
+
 export default function AIInvestigationPage() {
   const { mutateAsync: runAiInvestigate, isPending } = useAiInvestigate();
-  const [activeChatId, setActiveChatId] = useState<number | null>(1);
+  
+  // Backend Hooks
+  const { data: serverConversations, refetch: refetchConversations } = useAiConversations();
+  const { mutateAsync: createConversation } = useCreateAiConversation();
+  const { mutateAsync: updateConversation } = useUpdateAiConversation();
+
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  
   const [inputValue, setInputValue] = useState("");
   const [dynamicMessages, setDynamicMessages] = useState<{role: 'user' | 'ai', content: string}[]>([]);
+  const [streamingText, setStreamingText] = useState<string>("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Sync server conversations
+  useEffect(() => {
+    if (serverConversations) {
+      setChatSessions(serverConversations);
+      // If we don't have an active chat, select the newest or start fresh
+      if (!activeChatId && serverConversations.length > 0) {
+        setActiveChatId(serverConversations[0].id);
+        setDynamicMessages(serverConversations[0].messages || []);
+      } else if (!activeChatId) {
+        setDynamicMessages([]);
+      }
+    }
+  }, [serverConversations]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [dynamicMessages, streamingText]);
+
+  // Simulate streaming text output for AI responses
+  const streamResponse = (fullText: string) => {
+    setIsStreaming(true);
+    setStreamingText("");
+    let index = 0;
+    const chunkSize = 3;
+    const interval = setInterval(() => {
+      index += chunkSize;
+      if (index >= fullText.length) {
+        setStreamingText("");
+        setIsStreaming(false);
+        setDynamicMessages(prev => [...prev, { role: 'ai', content: fullText }]);
+        clearInterval(interval);
+      } else {
+        setStreamingText(fullText.slice(0, index));
+      }
+    }, 10);
+  };
 
   // Function to process prompts conversationally
   const triggerInvestigation = async (identityId: string, customUserMsg?: string) => {
     const userMsg = customUserMsg || `Run a security investigation on identity profile ID: ${identityId}`;
     setDynamicMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     
+    // Determine active conversation or create one
+    let currentChatId = activeChatId;
+    const title = userMsg.length > 40 ? userMsg.slice(0, 40) + '...' : userMsg;
+
+    if (!currentChatId || currentChatId === 'new') {
+      try {
+        const newConv = await createConversation({
+          title,
+          identity_id: identityId,
+          message: { role: 'user', content: userMsg }
+        });
+        currentChatId = newConv.id;
+        setActiveChatId(newConv.id);
+      } catch (e) {
+        console.error("Failed to create conversation", e);
+      }
+    } else {
+      try {
+        await updateConversation({
+          id: currentChatId,
+          message: { role: 'user', content: userMsg }
+        });
+      } catch (e) {
+        console.error("Failed to append message", e);
+      }
+    }
+    
     try {
       const report = await runAiInvestigate({ identity_id: identityId });
       
       if (report.success === false) {
-        // Handle sanitized enterprise errors without crashing
         const friendlyMessage = `Sorry, I'm unable to answer this investigation right now.\n\nThe AI service is temporarily unavailable.\n\nPlease try again later.`;
-        setDynamicMessages(prev => [...prev, { role: 'ai', content: friendlyMessage }]);
+        streamResponse(friendlyMessage);
         return;
       }
-      
+
       // Construct detailed AI response from backend Gemini results
-      const aiResponseText = `
-### Executive Summary
-${report.executive_summary || ""}
+      const findingsList = (report.findings || []).map((f: any) =>
+        typeof f === 'string' ? `• ${f}` : `• **${f.title || 'Finding'}**: ${f.description || ''}`
+      ).join("\n");
+      const recList = (report.recommendations || []).map((r: any) =>
+        typeof r === 'string' ? `• ${r}` : `• **${r.title || 'Action'}**: ${r.description || ''}`
+      ).join("\n");
 
-### Risk Assessment
-${report.risk_assessment || ""}
+      const confidenceNote = report.confidence_score
+        ? `\n\n**Confidence Score:** ${(report.confidence_score * 100).toFixed(0)}%`
+        : '';
 
-### Attack Path Analysis
-${report.attack_path_analysis || ""}
+      const aiResponseText = `### Executive Summary\n${report.executive_summary || "No summary available."}\n\n### Risk Assessment\n${report.risk_assessment || ""}\n\n### Attack Path Analysis\n${report.attack_path_analysis || ""}\n\n### Findings\n${findingsList || "No findings."}\n\n### Recommendations\n${recList || "No recommendations."}${confidenceNote}`.trim();
 
-### Findings
-${(report.findings || []).map((f: string) => `• ${f}`).join("\n")}
+      // Save AI response to backend
+      if (currentChatId && currentChatId !== 'new') {
+        try {
+          await updateConversation({
+            id: currentChatId,
+            message: { role: 'ai', content: aiResponseText }
+          });
+          refetchConversations();
+        } catch (e) {
+          console.error("Failed to save AI response", e);
+        }
+      }
 
-### Recommendations
-${(report.recommendations || []).map((r: string) => `• ${r}`).join("\n")}
-      `.trim();
-
-
-      setDynamicMessages(prev => [...prev, { role: 'ai', content: aiResponseText }]);
+      // Stream the response
+      streamResponse(aiResponseText);
     } catch (err: any) {
       // Fallback network error or complete API failure
       const friendlyMessage = `Sorry, I'm unable to answer this investigation right now.\n\nThe AI service is temporarily unavailable.\n\nPlease try again later.`;
-      setDynamicMessages(prev => [...prev, { role: 'ai', content: friendlyMessage }]);
+      streamResponse(friendlyMessage);
     }
   };
 
@@ -67,7 +155,7 @@ ${(report.recommendations || []).map((r: string) => `• ${r}`).join("\n")}
     if (!inputValue.trim()) return;
     
     if (activeChatId === null) {
-      setActiveChatId(Date.now());
+      setActiveChatId('new');
     }
 
     // Check if the query contains a UUID or ARN
@@ -105,7 +193,7 @@ ${(report.recommendations || []).map((r: string) => `• ${r}`).join("\n")}
       const params = new URLSearchParams(window.location.search);
       const identityId = params.get('identityId');
       if (identityId) {
-        setActiveChatId(999);
+        setActiveChatId('new');
         triggerInvestigation(identityId);
         // Clean URL query
         window.history.replaceState({}, '', '/ai-investigation');
@@ -114,8 +202,9 @@ ${(report.recommendations || []).map((r: string) => `• ${r}`).join("\n")}
   }, []);
 
   const handleNewChat = () => {
-    setActiveChatId(null);
+    setActiveChatId('new');
     setDynamicMessages([]);
+    setStreamingText("");
   };
 
   return (
@@ -136,21 +225,16 @@ ${(report.recommendations || []).map((r: string) => `• ${r}`).join("\n")}
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Investigation History</h3>
           </div>
           <div className="flex-1 overflow-y-auto p-2">
-            {activeChatId === 999 && (
-              <button className="w-full text-left p-3 flex flex-col gap-1 rounded-lg transition-colors border-l-2 mb-1 bg-indigo-50 border-indigo-600 shadow-sm">
-                <span className="text-sm font-semibold truncate text-indigo-900">Active Investigation</span>
-                <span className="text-xs text-indigo-500 font-mono">just now</span>
-              </button>
-            )}
-            {RECENT_CHATS.map((chat) => (
+            {chatSessions.map((chat) => (
               <button
                 key={chat.id}
                 onClick={() => {
                   setActiveChatId(chat.id);
-                  setDynamicMessages([]);
+                  setDynamicMessages(chat.messages || []);
+                  setStreamingText("");
                 }}
                 className={`w-full text-left p-3 flex flex-col gap-1 rounded-lg transition-colors border-l-2 mb-1 ${
-                  activeChatId === chat.id && activeChatId !== 999
+                  activeChatId === chat.id
                     ? "bg-indigo-50/50 border-indigo-600 shadow-sm text-indigo-900"
                     : "border-transparent hover:bg-slate-50 text-slate-600"
                 }`}
@@ -158,7 +242,10 @@ ${(report.recommendations || []).map((r: string) => `• ${r}`).join("\n")}
                 <span className="text-sm font-semibold truncate">
                   {chat.title}
                 </span>
-                <span className="text-xs text-slate-400 font-mono">{chat.time}</span>
+                <span className="text-xs text-slate-400 font-mono flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {chat.created_at ? new Date(chat.created_at).toLocaleDateString() : 'recently'}
+                </span>
               </button>
             ))}
           </div>
@@ -200,10 +287,22 @@ ${(report.recommendations || []).map((r: string) => `• ${r}`).join("\n")}
                 <h2 className="text-2xl font-bold text-slate-900 mb-8">How can I help secure your cloud identities today?</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                   {QUICK_PROMPTS.map((prompt, i) => (
-                    <button 
+                    <button
                       key={i}
-                      onClick={() => {
-                        setInputValue(prompt);
+                      onClick={async () => {
+                        setInputValue("");
+                        setActiveChatId('new');
+                        // Auto-submit the quick prompt directly
+                        let identityId = "";
+                        try {
+                          const { default: api } = await import("@/lib/api");
+                          const res = await api.get('/identities');
+                          if (res && res.length > 0) {
+                            const sorted = res.sort((a: any, b: any) => b.risk_score - a.risk_score);
+                            identityId = sorted[0].id;
+                          } else { identityId = "1"; }
+                        } catch { identityId = "1"; }
+                        triggerInvestigation(identityId, prompt);
                       }}
                       className="text-left bg-white border border-slate-200 hover:border-indigo-600 p-4 rounded-xl transition-all hover:bg-slate-50 group flex items-start gap-3 shadow-sm"
                     >
@@ -244,7 +343,26 @@ ${(report.recommendations || []).map((r: string) => `• ${r}`).join("\n")}
                   </div>
                 ))}
 
-                {isPending && (
+                {/* Streaming text display */}
+                {isStreaming && streamingText && (
+                  <div className="flex flex-col items-start pr-12 gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0">
+                        <BrainCircuit className="w-4 h-4 text-indigo-600" />
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                        <ShieldCheck className="w-3 h-3" />
+                        Streaming Response
+                      </div>
+                    </div>
+                    <div className="bg-white border border-slate-200 rounded-r-xl rounded-bl-xl p-5 shadow-sm flex flex-col gap-3 text-sm text-slate-700 ml-4 leading-relaxed whitespace-pre-wrap">
+                      {streamingText}
+                      <span className="inline-block w-2 h-4 bg-indigo-500 animate-pulse ml-0.5" />
+                    </div>
+                  </div>
+                )}
+
+                {isPending && !isStreaming && (
                   <div className="flex items-start gap-3 mt-4">
                     <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center shrink-0 animate-spin">
                       <Loader2 className="w-4 h-4 text-indigo-600" />
@@ -254,6 +372,8 @@ ${(report.recommendations || []).map((r: string) => `• ${r}`).join("\n")}
                     </div>
                   </div>
                 )}
+
+                <div ref={chatEndRef} />
               </div>
             )}
           </AnimatePresence>

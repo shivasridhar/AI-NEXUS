@@ -7,17 +7,14 @@ class StorageProvider(ABC):
     @abstractmethod
     def save(self, path: str, content: Union[bytes, str]) -> str:
         """Saves content to the given path and returns the URI/URL."""
-        pass
 
     @abstractmethod
     def get(self, path: str) -> bytes:
         """Retrieves content from the given path."""
-        pass
 
     @abstractmethod
     def get_uri(self, path: str) -> str:
         """Returns the fully qualified URI for the file."""
-        pass
 
 class LocalStorageProvider(StorageProvider):
     def __init__(self, base_dir: str = "storage"):

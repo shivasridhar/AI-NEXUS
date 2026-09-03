@@ -1,8 +1,8 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
-import { ArrowLeft, ShieldAlert, Clock, Info, ExternalLink } from "lucide-react";
-import { useFindingDetails } from "@/lib/queries";
+import { ArrowLeft, ShieldAlert, Clock, Info, ExternalLink, Download } from "lucide-react";
+import { useFindingDetails, useExportReport } from "@/lib/queries";
 import Link from "next/link";
 import { EvidencePanel, ConfidencePanel, RiskFactorsPanel, GraphMetricsPanel } from "@/components/findings/FindingPanels";
 
@@ -10,6 +10,23 @@ export default function FindingDetailsPage({ params }: { params: Promise<{ id: s
   const resolvedParams = use(params);
   const { data: finding, isLoading, error } = useFindingDetails(resolvedParams.id);
   const [isGraphEngineEnabled, setIsGraphEngineEnabled] = useState(false);
+  const exportReport = useExportReport();
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!finding) return;
+    setIsDownloading(true);
+    try {
+      await exportReport.mutateAsync({
+        finding_id: finding.id,
+        filename: `finding_report_${finding.id.slice(0, 8)}.pdf`
+      });
+    } catch (err) {
+      console.error("Failed to download PDF report:", err);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   useEffect(() => {
     // Check if Graph Evidence Engine is enabled via environment variable
@@ -70,6 +87,23 @@ export default function FindingDetailsPage({ params }: { params: Promise<{ id: s
             AI Investigate
             <ExternalLink className="w-4 h-4" />
           </Link>
+          <button
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className="w-full h-10 border border-slate-200 hover:border-indigo-400 text-slate-700 hover:text-indigo-600 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold transition-all bg-white shadow-sm disabled:opacity-50"
+          >
+            {isDownloading ? (
+              <>
+                <Clock className="w-4 h-4 animate-spin text-indigo-600" />
+                Downloading...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Download Report
+              </>
+            )}
+          </button>
           <div className="text-xs text-slate-500 flex items-center gap-2 mt-2">
             <Clock className="w-4 h-4" />
             Detected: {new Date(finding.created_at).toLocaleString()}

@@ -106,7 +106,7 @@ export default function AWSIntegrationPage() {
       setValidationResult(result);
       setStep("validate");
     } catch (e: any) {
-      setError(e.response?.data?.detail || "Validation failed. Check your credentials.");
+      setError(e.message || "Validation failed. Check your credentials.");
     } finally {
       setIsValidating(false);
     }
@@ -130,7 +130,7 @@ export default function AWSIntegrationPage() {
       await fetchIntegration();
       setStep("sync");
     } catch (e: any) {
-      setError(e.response?.data?.detail || "Failed to save configuration.");
+      setError(e.message || "Failed to save configuration.");
     } finally {
       setIsSaving(false);
     }
@@ -165,7 +165,7 @@ export default function AWSIntegrationPage() {
         }
       }, 3000);
     } catch (e: any) {
-      const detail = e.response?.data?.detail || "Failed to start sync.";
+      const detail = e.message || "Failed to start sync.";
       setError(detail);
       setIsSyncing(false);
     }

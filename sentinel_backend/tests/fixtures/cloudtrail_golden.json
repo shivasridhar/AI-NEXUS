@@ -1,0 +1,83 @@
+{
+  "Records": [
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAJ45Q7YFFAREXAMPLE",
+        "arn": "arn:aws:iam::123456789012:user/Alice",
+        "accountId": "123456789012",
+        "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
+        "userName": "Alice"
+      },
+      "eventTime": "2023-10-14T17:34:34Z",
+      "eventSource": "signin.amazonaws.com",
+      "eventName": "ConsoleLogin",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "192.0.2.1",
+      "userAgent": "Mozilla/5.0",
+      "requestParameters": null,
+      "responseElements": {
+        "ConsoleLogin": "Success"
+      },
+      "additionalEventData": {
+        "LoginTo": "https://console.aws.amazonaws.com/console/home",
+        "MobileVersion": "No",
+        "MFAUsed": "Yes"
+      },
+      "eventID": "8e3c6f2e-bf7d-419e-976c-3e3e3example",
+      "readOnly": false,
+      "eventType": "AwsConsoleSignIn",
+      "managementEvent": true,
+      "recipientAccountId": "123456789012",
+      "eventCategory": "Management"
+    },
+    {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAIOSFODNN7EXAMPLE:test-session",
+        "arn": "arn:aws:sts::123456789012:assumed-role/TestRole/test-session",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIAIOSFODNN7EXAMPLE",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "AROAIOSFODNN7EXAMPLE",
+            "arn": "arn:aws:iam::123456789012:role/TestRole",
+            "accountId": "123456789012",
+            "userName": "TestRole"
+          }
+        }
+      },
+      "eventTime": "2023-10-14T17:35:00Z",
+      "eventSource": "s3.amazonaws.com",
+      "eventName": "PutObject",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "192.0.2.2",
+      "userAgent": "aws-cli/2.0.0 Python/3.8.3",
+      "requestParameters": {
+        "bucketName": "my-secret-bucket",
+        "Host": "my-secret-bucket.s3.us-east-1.amazonaws.com",
+        "key": "test-file.txt"
+      },
+      "responseElements": null,
+      "eventID": "9f4d7g3f-cf8e-520f-087d-4f4f4example",
+      "readOnly": false,
+      "resources": [
+        {
+          "type": "AWS::S3::Object",
+          "ARN": "arn:aws:s3:::my-secret-bucket/test-file.txt"
+        },
+        {
+          "type": "AWS::S3::Bucket",
+          "ARN": "arn:aws:s3:::my-secret-bucket"
+        }
+      ],
+      "eventType": "AwsApiCall",
+      "managementEvent": false,
+      "recipientAccountId": "123456789012",
+      "eventCategory": "Data"
+    }
+  ]
+}

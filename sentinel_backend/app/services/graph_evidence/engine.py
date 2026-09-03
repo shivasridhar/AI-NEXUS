@@ -78,7 +78,7 @@ class GraphEvidenceEngine:
                 res = collector.collect(finding_id, workspace_id, identity_id)
                 evidence.update(res)
             except Exception as e:
-                logger.error(f"Collector {collector.__class__.__name__} failed: {e}")
+                logger.error("Collector {collector.__class__.__name__} failed: %s", e)
         return evidence
         
     def _perform_reasoning(self, evidence: Dict[str, Any], identity_id: str, workspace_id: str) -> Dict[str, Any]:

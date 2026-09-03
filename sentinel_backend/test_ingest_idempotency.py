@@ -22,6 +22,16 @@ def run_tests():
     # Setup service
     ingestion_service = IngestionService(db)
     
+    # Create test org and workspace
+    from app.models.tenant import Organization, Workspace
+    org_id = uuid.uuid4()
+    workspace_id = uuid.uuid4()
+    org = Organization(id=org_id, name="Test Org Idemp", slug=str(org_id))
+    workspace = Workspace(id=workspace_id, organization_id=org_id, name="Test Workspace Idemp")
+    db.add(org)
+    db.add(workspace)
+    db.commit()
+    
     # 1. Standard CloudTrail Records format
     print("\nTest 1: Standard CloudTrail Records format...")
     rec_id_1 = f"rec-evt-{uuid.uuid4()}"
@@ -45,7 +55,7 @@ def run_tests():
             }
         ]
     }
-    stats1 = ingestion_service.process_cloudtrail_json(rec_payload, job_id="job-1", filename="rec.json")
+    stats1 = ingestion_service.process_cloudtrail_json(rec_payload, job_id="job-1", filename="rec.json", workspace_id=workspace_id)
     print(f"Stats: {stats1}")
     assert stats1["inserted"] == 1
     assert stats1["duplicates"] == 0
@@ -70,7 +80,7 @@ def run_tests():
         "eventID": single_id,
         "recipientAccountId": "123456789012"
     }
-    stats2 = ingestion_service.process_cloudtrail_json(single_payload, job_id="job-2", filename="single.json")
+    stats2 = ingestion_service.process_cloudtrail_json(single_payload, job_id="job-2", filename="single.json", workspace_id=workspace_id)
     print(f"Stats: {stats2}")
     assert stats2["inserted"] == 1
     assert stats2["duplicates"] == 0
@@ -114,7 +124,7 @@ def run_tests():
             "recipientAccountId": "123456789012"
         }
     ]
-    stats3 = ingestion_service.process_cloudtrail_json(arr_payload, job_id="job-3", filename="arr.json")
+    stats3 = ingestion_service.process_cloudtrail_json(arr_payload, job_id="job-3", filename="arr.json", workspace_id=workspace_id)
     print(f"Stats: {stats3}")
     assert stats3["inserted"] == 2
     assert stats3["duplicates"] == 0
@@ -122,7 +132,7 @@ def run_tests():
 
     # 4. Duplicate uploads
     print("\nTest 4: Duplicate uploads...")
-    stats4 = ingestion_service.process_cloudtrail_json(arr_payload, job_id="job-4", filename="arr.json")
+    stats4 = ingestion_service.process_cloudtrail_json(arr_payload, job_id="job-4", filename="arr.json", workspace_id=workspace_id)
     print(f"Stats: {stats4}")
     assert stats4["inserted"] == 0
     assert stats4["duplicates"] == 2
@@ -150,20 +160,26 @@ def run_tests():
             "recipientAccountId": "123456789012"
         }
     ]
-    stats5 = ingestion_service.process_cloudtrail_json(mixed_payload, job_id="job-5", filename="mixed.json")
+    stats5 = ingestion_service.process_cloudtrail_json(mixed_payload, job_id="job-5", filename="mixed.json", workspace_id=workspace_id)
     print(f"Stats: {stats5}")
     assert stats5["inserted"] == 1
     assert stats5["duplicates"] == 1
     print("[PASS]")
 
-    # 6. Invalid JSON structure / empty upload
-    print("\nTest 6: Validation check on empty Records array...")
+    # 6. Invalid JSON structure
+    print("\nTest 6: Validation check on invalid root key...")
     try:
-        CloudTrailParser.parse_log_file({"Records": []})
-        assert False, "Expected ValueError on empty Records list"
+        CloudTrailParser.parse_log_file({"Invalid": []})
+        assert False, "Expected ValueError on missing Records list"
     except ValueError as ve:
         print(f"Received expected error: {ve}")
         assert "Unsupported CloudTrail format" in str(ve)
+    print("[PASS]")
+
+    # 6a. Empty Records array
+    print("\nTest 6a: Validation check on empty Records array...")
+    empty_result = CloudTrailParser.parse_log_file({"Records": []})
+    assert empty_result == [], f"Expected empty list, got {empty_result}"
     print("[PASS]")
 
     # 7. Missing eventID
@@ -188,7 +204,7 @@ def run_tests():
         assert False, "Expected ValueError on missing eventID"
     except ValueError as ve:
         print(f"Received expected error: {ve}")
-        assert "Missing eventID" in str(ve)
+        assert "All records failed validation" in str(ve)
     print("[PASS]")
 
     # 8. Missing eventTime
@@ -213,7 +229,7 @@ def run_tests():
         assert False, "Expected ValueError on missing eventTime"
     except ValueError as ve:
         print(f"Received expected error: {ve}")
-        assert "Missing eventTime" in str(ve)
+        assert "All records failed validation" in str(ve)
     print("[PASS]")
 
     # 9. Large upload (1000+ events)
@@ -240,7 +256,7 @@ def run_tests():
             "recipientAccountId": "123456789012"
         })
     large_payload = {"Records": large_records}
-    stats9 = ingestion_service.process_cloudtrail_json(large_payload, job_id="job-large", filename="large.json")
+    stats9 = ingestion_service.process_cloudtrail_json(large_payload, job_id="job-large", filename="large.json", workspace_id=workspace_id)
     print(f"Inserted: {stats9['inserted']}, Duplicates: {stats9['duplicates']}")
     assert stats9["inserted"] == 1050
     assert stats9["total_events"] == 1050
@@ -249,6 +265,8 @@ def run_tests():
     # Clean up test database records
     print("\nCleaning up test database records...")
     db.query(AccessLog).filter(AccessLog.event_id.in_([rec_id_1, single_id, arr_id_1, arr_id_2, mixed_id] + large_ids)).delete()
+    db.delete(workspace)
+    db.delete(org)
     db.commit()
     db.close()
     
